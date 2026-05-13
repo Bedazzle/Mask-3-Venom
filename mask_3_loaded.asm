@@ -1,3 +1,7 @@
+; ZX-M8XXX helpers
+; @main
+; @entry startup
+
 	device zxspectrum48
 
 ; sp 24576
@@ -1945,5 +1949,5 @@ LFFFE:
 last_jump:
 	defb $18	; jr to_interrupt
 
-	savebin "recompile/mask_3_loaded.bin",STARTBLOCK,$FFFF-STARTBLOCK+1
-	savesna "recompile/mask_3_loaded.sna",startup
+	savebin "recompile/mask_3_loaded.bin",STARTBLOCK,$FFFF-STARTBLOCK+1		; md5 check: 19bc11db626363a574876062784c5294
+	savesna "recompile/mask_3_loaded.sna",startup							; md5 check: 0c6b5a5f7109c6b0f5bf446cbb51affd
