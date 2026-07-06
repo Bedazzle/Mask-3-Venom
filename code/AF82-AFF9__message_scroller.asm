@@ -1,9 +1,13 @@
+; --- message_scroller ------------------------------------------
+; @done
+; Scroll the HUD message / weapon-name text one step. Called each
+; frame from the interrupt.
 message_scroller:
 	ld a, (WEAPON_TEXT_LEN)
 	and a
 	jr nz, do_letters_scroll
 
-	ld a, (LB0FE)
+	ld a, (WEAPON_PANEL_FLAG)
 	and a
 	jr z, reset_letters_scroll
 
@@ -28,7 +32,7 @@ do_letters_scroll:
 	call z, get_next_letter
 
 	ld (LETTER_SCROLLER), a
-	ld hl, LAF14
+	ld hl, SCROLLER_STATE
 	exx
 	ld b, $06		; letter height
 	ld hl, $51EB

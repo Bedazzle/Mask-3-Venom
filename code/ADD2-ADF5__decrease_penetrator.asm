@@ -1,5 +1,9 @@
+; --- decrease_penetrator ---------------------------------------
+; @done
+; In spriteset 2 only, walk the 4 weapon slots and decay each
+; slot's Penetrator power.
 decrease_penetrator:
-	ld a, (LA194)
+	ld a, (SPRITESET)
 
 	cp $02
 	ret nz
@@ -8,15 +12,15 @@ decrease_penetrator:
 	ld de, $0004
 	ld b, $04
 
-LADD2_0:
+.next_slot:
 	ld a, (ix+SLOT.WEAPON)
 	dec a
-	jr nz, LADD2_1
+	jr nz, .skip
 
 	ld (ix+SLOT.WEAPON), $00
 	ld (ix+SLOT.LOAD), $00
-LADD2_1:
+.skip:
 	add ix, de
-	djnz LADD2_0
+	djnz .next_slot
 
 	jp slot_blinking

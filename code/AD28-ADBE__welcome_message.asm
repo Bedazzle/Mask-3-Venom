@@ -1,3 +1,6 @@
+; --- welcome_message -------------------------------------------
+; @done
+; On entering room 0, show the 'GOOD LUCK' welcome message.
 welcome_message:
 	ld a, (ROOM_NUMBER)
 	and a
@@ -51,7 +54,7 @@ GOOD_LUCK:
 	ABYTEC 0 "GOOD LUCK MATT......"
 
 CODE_BROKEN:
-	DEFM "...CODE BROKEN.....PASSWORD IS "
+	DM "...CODE BROKEN.....PASSWORD IS "
 
 BUFFER_PASS:
-	defs $10
+	DS $10

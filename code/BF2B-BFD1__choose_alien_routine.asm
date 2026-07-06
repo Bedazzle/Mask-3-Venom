@@ -1,36 +1,41 @@
+; --- choose_alien_routine --------------------------------------
+; @done
+; For each idle alien slot, spawn the room's next enemy by
+; dispatching to the do_* routine named in ROOM_ALIEN_SET.
+; In: ix = alien slot
 choose_alien_routine:
-	ld a, (ix+$00)
+	ld a, (ix+ALIEN.state)
 	and $7F
 	ret nz
 
-	ld a, (LBFB0)
+	ld a, (ROOM_ALIEN_SET)
 
 	cp $05
-	jr z, LBF2B_0
+	jr z, .spawn_now
     
 	cp $06
-	jr z, LBF2B_0
+	jr z, .spawn_now
     
 	cp $08
-	jr z, LBF2B_0
+	jr z, .spawn_now
     
 	cp $09
-	jr z, LBF2B_0
+	jr z, .spawn_now
     
 	cp $0A
-	jr z, LBF2B_0
+	jr z, .spawn_now
     
 	call generate_random
 
 	and $2E
-	jr nz, LBF2B_1
+	jr nz, arm_alien
 
-LBF2B_0:
-	ld a, (LC0D6)
+.spawn_now:
+	ld a, (BOSS_ACTIVE)
 	and a
-	jp nz, LBF2B_1
+	jp nz, arm_alien
     
-	ld a, (LBFB0)
+	ld a, (ROOM_ALIEN_SET)
 	;mult
 	ld l, a
 	add a, a	; x2
@@ -42,29 +47,28 @@ LBF2B_0:
 	; mult HL = A*3 + alien_routines
 	jp (hl)
 
-; This entry point is used by the routine at LC167.
-LBF2B_1:
+; entry point used by do_bomb.
+arm_alien:
 	ld a, (ALIEN.1)
 
 	cp $08
 	ret z
 	
-	ld (ix+$03), $01
-	ld (ix+$04), $00
-	ld (ix+$05), $02
-	ld (ix+$06), $02
-	ld (ix+$00), $80
+	ld (ix+ALIEN.x), $01
+	ld (ix+ALIEN.y), $00
+	ld (ix+ALIEN.width), $02
+	ld (ix+ALIEN.height), $02
+	ld (ix+ALIEN.state), $80
 
 	ret
 
-; Routine at BF7F
-LBF7F:
+spawn_boss:
 	ld ix, ALIEN.1
 	ld b, $06
-	ld de, $0026
+	ld de, ALIEN_LEN
 	ld a, $00
 loop_check_aliens:
-	or (ix+$00)
+	or (ix+ALIEN.state)
 	add ix, de
 	djnz loop_check_aliens
 
@@ -72,23 +76,23 @@ loop_check_aliens:
 	ret nz
 
 	ld ix, ALIEN.1
-	ld (ix+$00), $80
-	ld (ix+$05), $04
-	ld (ix+$06), $05
-	ld (ix+$04), $00
-	ld (ix+$03), $01
-	ld (ix+$19), $06
+	ld (ix+ALIEN.state), $80
+	ld (ix+ALIEN.width), $04
+	ld (ix+ALIEN.height), $05
+	ld (ix+ALIEN.y), $00
+	ld (ix+ALIEN.x), $01
+	ld (ix+ALIEN.mode), $06
 
 	ret
 
 
-LBFB0:
-	defb $00
+ROOM_ALIEN_SET:
+	DB $00
 
 
 alien_routines:
 	ret
-	defb $00,$00
+	DB $00,$00
 
 	jp do_rockets
 	jp do_spheres

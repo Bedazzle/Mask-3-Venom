@@ -1,15 +1,19 @@
+; --- main_menu_loop --------------------------------------------
+; @done
+; The main-menu input loop: draw the menu, poll the controls, and
+; act on the selection (start / redefine keys / password).
 main_menu_loop:
 	call show_main_menu
 	call copy_F2F0_buff
 
 	ld a, $FF
-	ld (L970E), a
-L9723_2:
+	ld (IN_MENU), a
+menu_recheck:
 	halt
 	ld a, (KEMPSTON_YES)
 	push af
 
-	call LA0C9
+	call read_keypress
 
 check_kempston:
 	cp "0"
@@ -64,10 +68,10 @@ check_keyboard:
 
 check_redefine:
 	cp $62
-	jr nz, L9723_8
+	jr nz, menu_keep
 
 	call redefine_keys
-	call L9E10
+	call clear_screen_pixels
 
 	ld a, $03
 	ld (KEMPSTON_YES), a
@@ -85,36 +89,36 @@ control_select:
 	cp l
 
 	call nz, show_main_menu
-	jr L9723_9
+	jr menu_check_p
 
-L9723_8:
+menu_keep:
 	pop af
 
-L9723_9:
+menu_check_p:
 	ld a,"P"
 
-	call LA090
+	call read_key
 	jp z, enter_password
 
 	call is_fire_pressed
 	bit 4, a
-	jp z, L9723_2
+	jp z, menu_recheck
 
 menu_fire:
 	ld a, $03
-	ld (L9222), a
+	ld (SND_TRIG_1), a
 
-	call LA040
+	call wipe_screen
 
 	xor a
-	ld (L970E), a
-	ld hl, LF600
+	ld (IN_MENU), a
+	ld hl, MIRROR_LUT
 	ld de, $1200
 	ld bc, $2006
 
-	call L99B8
+	call draw_block
 
-	ld hl, LFC64
+	ld hl, COLOR_LUT2
 	ld de, $5A40
 	ld bc, $00C0
 	ldir
@@ -122,52 +126,52 @@ menu_fire:
 	ld de, $50E1
 	ld b, $0A
 
-L9723_10:
+.space_loop:
 	ld a, $20
 
 	call print_char
-	djnz L9723_10
+	djnz .space_loop
 
 	xor a
 	ld (WEAPON_TEXT_LEN), a
 	ld (LETTER_SCROLLER), a
-	ld (LB0FE), a
-	ld (L970D), a
+	ld (WEAPON_PANEL_FLAG), a
+	ld (HUD_ACTIVE), a
 
 	ret
 
-L984D:
+menu_wipe_in:
 	ld e, $F8
 
-L984D_0:
-	call L985A
+.loop:
+	call draw_diagonal_attrs
 
 	halt
 	inc e
 	ld a, e
 
 	cp $3E
-	jr nz, L984D_0
+	jr nz, .loop
 
 	ret
 
-L985A:
+draw_diagonal_attrs:
 	push de
 	push af
 	ld d, $00
 
-L985A_0:
+.row:
 	push de
 	ld a, $47
 
-L985A_1:
+.col:
 	call col_row_to_attr
 
 	dec e
 	dec a
 
 	cp $3F
-	jp nz, L985A_1
+	jp nz, .col
 
 	pop de
 	dec e
@@ -175,7 +179,7 @@ L985A_1:
 	ld a, d
 
 	cp $18
-	jr nz, L985A_0
+	jr nz, .row
 
 	pop af
 	pop de

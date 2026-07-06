@@ -1,3 +1,6 @@
+; --- draw_multi_logo -------------------------------------------
+; @done
+; Draw the multicolour 'Venom Strikes Back' title logo.
 draw_multi_logo:	; draw multicolor flag ???
 					; ? Venom logo 10x7 cells
 	ld bc, $021F
@@ -12,7 +15,7 @@ loop_draw_pause:
 	nop
 	nop
 	ld de, $580B	; target in attr area
-	ld hl, LF0CA
+	ld hl, MAP_LOGO
 	ld a, $07
 
 draw_multi_logo_1:

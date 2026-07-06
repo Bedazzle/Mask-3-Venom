@@ -1,3 +1,5 @@
+; --- match_buffer ----------------------------------------------
+; @done
 ; in: HL - address of password to match
 ; out: Z set if full match
 

@@ -1,3 +1,5 @@
+; --- find_bmp_addr ---------------------------------------------
+; @done
 ; find screen bitmap address
 ; in: D=row, E=column
 ; out: HL=address

@@ -1,3 +1,7 @@
+; --- redefine_keys ---------------------------------------------
+; @done
+; Key-redefine screen: clear the key set, then prompt for each
+; control in turn and store the pressed key.
 redefine_keys:
 	xor a
 	ld (KEY_FIRE), a
@@ -6,7 +10,7 @@ redefine_keys:
 	ld (KEY_LEFT), a
 	ld (KEY_RIGHT), a
 
-	call L9E10
+	call clear_screen_pixels
 
 	ld hl, WORD_PRESS
 	ld de, $080A

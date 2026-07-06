@@ -1,3 +1,8 @@
+; --- startup ---------------------------------------------------
+; @done
+; System init (entered from the loader): copy DATA_BLOCK1 into the
+; bank area, seed the colour banks, build the IM2 vector table +
+; handler, then detect the Kempston joystick.
 startup:
 	di
 	ld hl, DATA_BLOCK1
@@ -6,7 +11,7 @@ startup:
 	ldir
 
 	ld hl, COLORS_PLAYER
-	ld de, L6300
+	ld de, BANK1_COLORS
 	ld bc, $0100
 	ldir
 
@@ -33,9 +38,9 @@ startup:
 	im 2
 	xor a
 	ld (COLORS_BACKGR), a
-	ld (L6300), a
-	ld (L6C00), a
-	ld (L7500), a
+	ld (BANK1_COLORS), a
+	ld (BANK2_COLORS), a
+	ld (BANK3_COLORS), a
 
 	call detect_kempston
 

@@ -1,3 +1,6 @@
+; --- show_slot_box ---------------------------------------------
+; @done
+; Draw one weapon-slot box on the HUD panel.
 show_slot_box:
 	push af
 	push hl

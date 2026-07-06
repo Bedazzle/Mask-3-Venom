@@ -1,22 +1,27 @@
+; --- do_mushrooms ----------------------------------------------
+; @done
+; Spawn a mushroom once (state 7, TEMPLATE_MUSHROOM), guarded by
+; the slot's spawn flag.
+; In: ix = alien slot
 do_mushrooms:
-	ld a, (ix+$1F)
+	ld a, (ix+ALIEN.spawn)
 	and a
 	ret nz
 
-	ld (ix+$1F), $FF
-	ld (ix+$00), $07
+	ld (ix+ALIEN.spawn), $FF
+	ld (ix+ALIEN.state), $07
 
 	ld hl, TEMPLATE_MUSHROOM
 
 	call copy_alien_template
 
-	ld (ix+$03), $C6
-	ld a, (LAC7F)
+	ld (ix+ALIEN.x), $C6
+	ld a, (GROUND_ROW)
 	sub $0F
-	ld (ix+$04), a
-	ld (ix+$1B), $FE
-	ld (ix+$1C), $14
-	ld (ix+$11), $00
-	ld (ix+$12), $01
+	ld (ix+ALIEN.y), a
+	ld (ix+ALIEN.xvel), $FE
+	ld (ix+ALIEN.yvel), $14
+	ld (ix+ALIEN.param1), $00
+	ld (ix+ALIEN.param2), $01
 
 	ret

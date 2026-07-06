@@ -1,3 +1,8 @@
+; --- is_fire_pressed -------------------------------------------
+; @done
+; Read the current fire+direction input (Kempston joystick if
+; present, else the selected key set) and latch KEY_FIRE_PREVIOUS.
+; Out: a = control bits (b4 fire, b3 up, b2 down, b1 left, b0 right)
 is_fire_pressed:
 	ld a, (KEY_FIRE_CURRENT)
 	ld (KEY_FIRE_PREVIOUS), a

@@ -1,3 +1,7 @@
+; --- collect_box -----------------------------------------------
+; @done
+; For each weapon box (BOX.1..): if the player overlaps it, collect
+; the box and assign its weapon to a slot.
 collect_box:
 	ld ix, BOX.1
 
@@ -43,7 +47,7 @@ collect_box_0:
 	ld hl, X_BUFFER
 	add hl, bc
 	ld a, (hl)
-	ld (ix + SLOT.XXX), a
+	ld (ix + SLOT.POWER), a
 
 	call slot_blinking
 
@@ -74,7 +78,7 @@ find_weapon:
 	push bc
 	ld a, c
 
-	call LB0CE
+	call update_weapon_panel
 
 	pop bc
 	pop af
@@ -83,14 +87,14 @@ find_weapon:
 
 	
 WEAPONS:		;LB197:
-	DEFM "   EMPTY   "		; 0
-	DEFM "PENETRATOR "		; 1
-	DEFM "ULTRA FLASH"		; 2
-	DEFM "  MIRAGE   "		; 3
-	DEFM "  HEALER   "		; 4
-	DEFM "JACKRABBIT "		; 5
-	DEFM "  LIFTER   "		; 6
-	DEFM "  BLASTER  "		; 7
-	DEFM " BACKLASH  "		; 8
-	DEFM " LAVA SHOT "		; 9
-	DEFM " STREAMER  "		; 10
+	DM "   EMPTY   "		; 0
+	DM "PENETRATOR "		; 1
+	DM "ULTRA FLASH"		; 2
+	DM "  MIRAGE   "		; 3
+	DM "  HEALER   "		; 4
+	DM "JACKRABBIT "		; 5
+	DM "  LIFTER   "		; 6
+	DM "  BLASTER  "		; 7
+	DM " BACKLASH  "		; 8
+	DM " LAVA SHOT "		; 9
+	DM " STREAMER  "		; 10

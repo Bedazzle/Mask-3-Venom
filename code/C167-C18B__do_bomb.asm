@@ -1,19 +1,24 @@
+; --- do_bomb ---------------------------------------------------
+; @done
+; Spawn a bomb (state 13, TEMPLATE_BOMB) after clearing the other
+; aliens; re-arms via arm_alien if already spawned.
+; In: ix = alien slot
 do_bomb:
-	ld a, (ix+$1F)
+	ld a, (ix+ALIEN.spawn)
 	and a
-	jp nz, LBF2B_1
+	jp nz, arm_alien
 
 	call kill_all_aliens
 
-	ld (ix+$00), $0D	; procedure?
-	ld (ix+$03), $60
-	ld (ix+$04), $E2
+	ld (ix+ALIEN.state), $0D	; procedure?
+	ld (ix+ALIEN.x), $60
+	ld (ix+ALIEN.y), $E2
 
 	ld hl, TEMPLATE_BOMB
 
 	call copy_alien_template
 
-	ld (ix+$1C), $08
-	ld (ix+$11), $00
+	ld (ix+ALIEN.yvel), $08
+	ld (ix+ALIEN.param1), $00
 
 	ret

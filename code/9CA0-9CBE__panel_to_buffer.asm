@@ -1,6 +1,10 @@
+; --- panel_to_buffer -------------------------------------------
+; @done
+; Copy the HUD panel bitmap ($5040) into the working buffer,
+; bit-mirrored via MIRROR_LUT, for later redraw.
 panel_to_buffer:
 	ld hl, $5040	; bitmap address
-	ld de, LF600
+	ld de, MIRROR_LUT
 	ld c, h
 
 copy_cells:
@@ -17,7 +21,7 @@ loop_copy_cell:
 	jr nz, copy_cells
 
 	ld hl, $5A40	; attr address
-	ld de, LFC64
+	ld de, COLOR_LUT2
 	ld bc, $00C0
 	ldir
 

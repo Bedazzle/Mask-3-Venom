@@ -1,3 +1,7 @@
+; --- change_room -----------------------------------------------
+; @done
+; Room-transition cluster: go_left_room / go_right_room step to the
+; adjacent room; go_transfer_room takes a transfer/down exit.
 go_left_room:
 	ld a, (ROOM_NUMBER)
 	and a
@@ -9,7 +13,7 @@ go_left_room_0:
 	ld (ix + PLAYER_X), $B2
 	push ix
 
-	call LA89D
+	call draw_room
 
 	pop ix
 	or $FF
@@ -18,7 +22,7 @@ go_left_room_0:
 
 go_left_room_1:
 	ld iy, (ROOM_EXITS_ADDR)
-	ld a, (iy+$00)
+	ld a, (iy+ROOM_EXITS.LEFT)
 
 	cp $FF
 	ret z
@@ -41,7 +45,7 @@ go_right_room_0:
 	ld (ix + PLAYER_X), $3E
 	push ix
 
-	call LA89D
+	call draw_room
 
 	pop ix
 	or $FF
@@ -50,7 +54,7 @@ go_right_room_0:
 
 go_right_room_1:
 	ld iy, (ROOM_EXITS_ADDR)
-	ld a, (iy+$01)
+	ld a, (iy+ROOM_EXITS.RIGHT)
 
 	cp $FF
 	ret z
@@ -62,15 +66,15 @@ go_right_room_1:
 	jr go_right_room_0
 
 
-LB6B3:
+go_transfer_room:
 	ld ix, (ROOM_EXITS_ADDR)
-	ld a, (ix+$02)
+	ld a, (ix+ROOM_EXITS.TRANSFER)
 
 	cp $FF
 	ret z
 
 	ld (LEVEL_NUMBER), a
-	ld a, (ix+$05)
+	ld a, (ix+ROOM_EXITS.TRANSFER_DEST)
 	ld l, a
 	and $1F
 	add a, a
@@ -84,4 +88,4 @@ LB6B3:
 
 	ld (ROOM_NUMBER), a
 
-	jp LA89D
+	jp draw_room

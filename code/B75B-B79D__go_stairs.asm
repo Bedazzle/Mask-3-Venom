@@ -1,26 +1,31 @@
+; --- go_stairs -------------------------------------------------
+; @done
+; Move the player up/down a staircase: step x by the input xvel
+; and adjust y (go_upstairs / go_downstairs entries).
+; In: ix = player
 go_upstairs:
 	ld a, (PLAYER_X_COORD)
-	add a, (ix+$1B)
+	add a, (ix+ALIEN.xvel)
 	ld (PLAYER_X_COORD), a
 
 	ld a, (PLAYER_Y_COORD)
 	sub $04
 	ld (PLAYER_Y_COORD), a
 
-	dec (ix+$10)
+	dec (ix+ALIEN.timer)
 	ret nz
 
-	ld (ix+$00), $01
+	ld (ix+ALIEN.state), $01
 
 	ret
 
 
 go_downstairs:
-	dec (ix+$10)
-	jp m, LB775_0
+	dec (ix+ALIEN.timer)
+	jp m, .edge
 
 	ld a, (PLAYER_X_COORD)
-	add a, (ix+$1B)
+	add a, (ix+ALIEN.xvel)
 
 	cp $B6
 	jp nc, go_right_room
@@ -35,7 +40,7 @@ go_downstairs:
 
 	ret
 
-LB775_0:
-	ld (ix+$00), $01
+.edge:
+	ld (ix+ALIEN.state), $01
 
-	jp LB3EB
+	jp update_player

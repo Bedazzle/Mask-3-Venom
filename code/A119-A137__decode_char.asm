@@ -1,3 +1,8 @@
+; --- decode_char -----------------------------------------------
+; @done
+; Decode one password token byte into its display character.
+; In: a = token
+; Out: a = char
 decode_char:
 	push hl
 	push de

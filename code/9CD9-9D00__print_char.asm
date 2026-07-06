@@ -1,3 +1,7 @@
+; --- print_char ------------------------------------------------
+; @done
+; Print one character's 5-row glyph to the screen.
+; In: a = char code
 print_char:
 	push bc
 	push hl

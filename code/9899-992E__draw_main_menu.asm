@@ -1,9 +1,13 @@
+; --- draw_main_menu --------------------------------------------
+; @done
+; Draw the whole main-menu screen: multicolour logo, the
+; playfield-buffer panel, and the menu items. Called from the interrupt.
 draw_main_menu:
 	call draw_multi_logo
 	call copy_F2F0_buff
 
 	ld a, $07
-	ld hl, LF0C0
+	ld hl, PLAYFIELD_MAP
 	ld de, $580B
 loop_draw_main:
 	ex af, af'
@@ -20,7 +24,7 @@ loop_draw_main:
 	jr nz, loop_draw_main
 
 	ld bc, $01CC
-	ld a, (LFFFE)
+	ld a, (IS_128K)
 	and a
 	jr z, loop_blink_pause
 

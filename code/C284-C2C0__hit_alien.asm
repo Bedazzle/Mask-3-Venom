@@ -1,11 +1,10 @@
+; --- hit_alien -------------------------------------------------
+; @done
+; Player bullet vs aliens: scan the 6 alien slots and apply a hit
+; (damage/kill + score) to any overlapping the bullet.
 hit_alien:
-	;display "here: hit_alien", $
 	ld ix, ALIEN.1
 
-	;ret
-	;nop
-	;nop
-	;nop
 
 
 	ld b, $06
@@ -16,34 +15,34 @@ loop_next_hit:
 
 	call choose_alien_routine
 
-	ld (ix+$22), $00
+	ld (ix+ALIEN.hit), $00
 
-	call LBC96
+	call bullet_hits_alien
 
-	jr nz, LC284_2
+	jr nz, .was_hit
 
-	dec (ix+$21)
+	dec (ix+ALIEN.hp)
 
-LC284_1:
-	ld iy, LA465
-	dec (iy+$21)
-	jr nz, LC284_3
+.damage_bullet:
+	ld iy, PLAYER_BULLET
+	dec (iy+ALIEN.hp)
+	jr nz, .run_state
 
-	ld (iy+$00), $00
-	jr LC284_3
+	ld (iy+ALIEN.state), $00
+	jr .run_state
 
-LC284_2:
-	ld a, (ix+$22)
+.was_hit:
+	ld a, (ix+ALIEN.hit)
 	and a
-	jr nz, LC284_1
+	jr nz, .damage_bullet
 
-LC284_3:
+.run_state:
 	call alien_vectors
 
 	pop ix
 	pop bc
-	ld de, $0026
+	ld de, ALIEN_LEN
 	add ix, de
 	djnz loop_next_hit
 
-	jp LBF7F
+	jp spawn_boss

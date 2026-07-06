@@ -1,6 +1,15 @@
+; --- alien_vectors -------------------------------------------
+; @done
+; Per-frame update dispatcher for the alien state machine. Reads
+; this alien's state (ALIEN.state), masks off the flag bits, and
+; jumps through ALIEN_STATE_TABLE to the handler for states 0-19.
+; State 0 (and the flag-only case) is inactive. Each handler is a
+; move_* / state_* routine; the do_* spawners set the initial
+; state when an alien appears.
+; In: ix = alien
 alien_vectors:
 	IFNDEF DESERT
-		ld a, (ix+$00)
+		ld a, (ix+ALIEN.state)
 	ELSE
 		ret
 		nop
@@ -15,70 +24,68 @@ alien_vectors:
 	add a, l
 	ld l, a
 	ld h, $00
-	ld de, LC326
+	ld de, ALIEN_STATE_TABLE
 	add hl, de
 
 	jp (hl)
 
 
-LC326:
-	jp deadly_loop	; vector 0
+ALIEN_STATE_TABLE:
+	jp deadly_loop		; 0  inactive
 
-LC329:
-	jp LC375	; vector 1 spheres
+vec_sphere:
+	jp move_sphere		; 1
 
-LC32C:
-	jp LC3A6	; vector 2 rockets
+vec_rocket:
+	jp move_rocket		; 2
 
-LC32F:
-	jp LC3F1	; vector 3 hit by sphere/mushroom
-				; rockets
+vec_vanish:
+	jp state_vanish		; 3  disappearing animation
 
-LC332:
-	jp LC457	; vector 4 cannon
+vec_cannon:
+	jp move_cannon		; 4
 
-somejump_LC335:
-	jp LC521	; vector 5 cannon
+vec_cannonball:
+	jp move_cannonball	; 5
 
-LC338:
-	jp LC562	; vector 6
+vec_jumper:
+	jp move_jumper		; 6
 
-LC33B:
-	jp LC5D9	; vector 7 mushrooms
+vec_mushroom:
+	jp move_mushroom	; 7
 
-LC33E:
-	jp LC64E	; vector 8
+vec_harrier:
+	jp move_harrier		; 8
 
-LC341:
-	jp just_a_ret	; vector 9
+vec_idle:
+	jp just_a_ret		; 9  idle
 
-LC344:
-	jp LC6D4	; vector 10 mushroom/rocket shot
+vec_rise:
+	jp state_rise		; 10 death rise (after being shot)
 
-somejump_LC347:
-	jp LC6F2	; vector 11 collision with rotator
-				; bomber
+vec_bomber_bomb:
+	jp move_bomber_bomb	; 11
 
-LC34A:
-	jp LC73F	; vector 12
+vec_volcano:
+	jp move_volcano		; 12
 
-LC34D:
-	jp LC78A	; vector 13 bomb
+vec_bomb:
+	jp state_bomb		; 13
 
-LC350:
-	jp LC81B	; vector 14
+vec_mortar:
+	jp move_mortar		; 14
 
-LC353:
-	jp LC860	; vector 15
+vec_mortar_shell:
+	jp move_mortar_shell	; 15
 
-LC356:
-	jp LC89B	; vector 16 bomber + rotators
+vec_bomber:
+	jp move_bomber		; 16
 
-somejump_LC359:
-	jp LC922	; vector 17 collision with bomber
+vec_explosion:
+	jp state_explosion	; 17
 
-LC35C:
-	jp LC980	; vector 18
+vec_snake_head:
+	jp move_snake_head	; 18
 
-LC35F:
-	jp LC9B8	; vector 19
+vec_snake_body:
+	jp move_snake_body	; 19

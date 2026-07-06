@@ -1,3 +1,6 @@
+; --- show_main_menu --------------------------------------------
+; @done
+; Draw the menu text items from MENU_TEXTS.
 show_main_menu:
 	ld hl, MENU_TEXTS
 	ld b, $0F
@@ -18,17 +21,17 @@ loop_menu_txt:
 	ex de, hl
 	ld hl, HISCORE
 	ld b, $04
-L9D1A_1:
+.hiscore_loop:
 	ld a, (hl)
 
 	call print_A_numpair
 
 	inc hl
-	djnz L9D1A_1
+	djnz .hiscore_loop
 
 	xor a
 	ld hl, MAINMENU_ICONS
-L9D1A_2:
+.icon_loop:
 	ld d, (hl)
 	inc hl
 
@@ -37,12 +40,12 @@ L9D1A_2:
 
 	push af
 	push hl
-	ld hl, LCC80
+	ld hl, MENU_ICONS
 	ld c, a
 	ld b, $00
 	add hl, bc
 	ld bc, $0202
-	call L99B8
+	call draw_block
 	pop hl
 	ld a, (hl)
 	inc hl
@@ -56,53 +59,53 @@ L9D1A_2:
 	pop af
 	add a, $20
 	cp $E0
-	jr nz, L9D1A_2
+	jr nz, .icon_loop
 	ret
 
 
 MENU_TEXTS:
-	defb $18,$09
+	DB $18,$09
 	ABYTEC 0 "PROGRAM"
 
-	defb $18,$0A
+	DB $18,$0A
 	ABYTEC 0 "FUNGUS"
 
-	defb $18,$0C
+	DB $18,$0C
 	ABYTEC 0 "GRAPHICS"
 
-	defb $18,$0D
+	DB $18,$0D
 	ABYTEC 0 "MARCOS"
 
-	defb $1B,$0E
+	DB $1B,$0E
 	ABYTEC 0 "DUROE"
 
-	defb $18,$10
+	DB $18,$10
 	ABYTEC 0 "MUSIC"
 
-	defb $18,$11
+	DB $18,$11
 	ABYTEC 0 "BENN"
 
-	defb $18,$13
+	DB $18,$13
 	ABYTEC 0 "HISCORE"
 
-	defb $03,$08
+	DB $03,$08
 	ABYTEC 0 "1.KEMPSTON"
 
-	defb $03,$0A
+	DB $03,$0A
 	ABYTEC 0 "2.INTERFACE 2"
 
-	defb $03,$0C
+	DB $03,$0C
 	ABYTEC 0 "3.CURSOR"
 
-	defb $03,$0E
+	DB $03,$0E
 	ABYTEC 0 "4.KEYBOARD"
 
-	defb $03,$10
+	DB $03,$10
 	ABYTEC 0 "K.DEFINE KEYS"
 
-	defb $03,$12
+	DB $03,$12
 WORD_ENTER_PASS:
 	ABYTEC 0 "P.ENTER PASSWOID"	; mistyped "passwoRd"
 
-	defb $03,$14
+	DB $03,$14
 	ABYTEC 0 "FIRE. START GAME"

@@ -1,5 +1,9 @@
+; --- enter_password --------------------------------------------
+; @done
+; Password-entry screen: read characters into PASS_BUFFER and match
+; against PASS_1..4 to jump to that level.
 enter_password:
-	call L9E10
+	call clear_screen_pixels
 
 	ld hl, WORD_ENTER_PASS + 2
 	ld de, $0809
@@ -16,7 +20,7 @@ enter_password:
 	ld c, $00
 
 loop_pass:
-	call LA0E5
+	call wait_keypress
 
 	cp $40
 	jr z, loop_pass
@@ -75,6 +79,6 @@ match_pass_4:
 	ld (hl), a
 
 match_end:
-	call L9E10
+	call clear_screen_pixels
 
 	jp main_menu_loop

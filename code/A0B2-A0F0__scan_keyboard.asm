@@ -1,3 +1,8 @@
+; --- scan_keyboard ---------------------------------------------
+; @done
+; Scan the ZX keyboard matrix row by row and return the pressed
+; key's row/column code.
+; Out: pressed key code
 scan_keyboard:
 	ld b, $7F
 scan_row:
@@ -21,32 +26,32 @@ key_pressed:
 	ret
 
 
-LA0C9:
+read_keypress:
 	push bc
 
 	call scan_keyboard
 
-	jr z, LA0C9_0
+	jr z, .col_loop
 
 	pop bc
 
 	ret
 
-LA0C9_0:
+.col_loop:
 	srl c
-	jr nc, LA0C9_1
+	jr nc, .row_loop
 
 	inc a
-	jr LA0C9_0
+	jr .col_loop
 
-LA0C9_1:
+.row_loop:
 	srl b
-	jr nc, LA0C9_2
+	jr nc, .done
 
 	add a, $10
-	jr LA0C9_1
+	jr .row_loop
 
-LA0C9_2:
+.done:
 	ld c, a
 	xor a
 	ld a, c
@@ -55,13 +60,13 @@ LA0C9_2:
 	ret
 
 
-LA0E5:
-	call LA0C9
+wait_keypress:
+	call read_keypress
 
-	jr z, LA0E5
+	jr z, wait_keypress
 
-LA0E5_0:
-	call LA0C9
+.wait:
+	call read_keypress
 
-	jr nz, LA0E5_0
+	jr nz, .wait
 	jr decode_char

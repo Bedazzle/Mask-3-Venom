@@ -1,42 +1,47 @@
+; --- do_mortar -------------------------------------------------
+; @done
+; Spawn the mortar (state $0E): clear the arena, find the ground
+; column via is_solid, place it there; re-arms via arm_alien.
+; In: ix = alien slot
 do_mortar:
-	ld a, (ix+$1F)
+	ld a, (ix+ALIEN.spawn)
 	and a
-	jp nz, LBF2B_1
+	jp nz, arm_alien
 
 	push ix
 
 	call kill_all_aliens
 
 	ld ix, ALIEN.1
-	ld (ix+$00), $80
-	ld (ix+$05), $02
-	ld (ix+$06), $02
-	ld (ix+$03), $01
+	ld (ix+ALIEN.state), $80
+	ld (ix+ALIEN.width), $02
+	ld (ix+ALIEN.height), $02
+	ld (ix+ALIEN.x), $01
 
 	ld ix, ALIEN.2
-	ld (ix+$03), $A4
-	ld hl, LF0D9
+	ld (ix+ALIEN.x), $A4
+	ld hl, MAP_MORTAR
 	ld c,$00
 	ld de, $20
 
-LC1CE:
-	call LB993
+.find_ground:
+	call is_solid
 
-	jr c, LC1D7
+	jr c, .place
 
 	add hl, de
 	inc c
-	jr LC1CE
+	jr .find_ground
 
-LC1D7:
+.place:
 	ld a, c
 	add a, a
 	add a, a
 	add a, a
 	sub $20
-	ld (ix+$04), a
-	ld (ix+$00), $0E
-	ld (ix+$1F), $FF
+	ld (ix+ALIEN.y), a
+	ld (ix+ALIEN.state), $0E
+	ld (ix+ALIEN.spawn), $FF
 
 	ld hl, TEMPLATE_MORTAR
 

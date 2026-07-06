@@ -1,3 +1,5 @@
+; --- increase_score --------------------------------------------
+; @done
 ; increase score memory buffer by value in DE
 
 increase_score:

@@ -1,6 +1,10 @@
 RND:
-	defb $00,$00,$00
+	DB $00,$00,$00
 
+; --- generate_random -------------------------------------------
+; @done
+; 8-bit pseudo-random generator (advances the 3-byte RND seed).
+; Out: a = random byte
 generate_random:
 	push hl
 	push de

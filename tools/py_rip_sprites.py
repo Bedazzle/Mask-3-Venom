@@ -1,5 +1,12 @@
 ﻿import sys
 
+# Force UTF-8 output so the solid-block glyphs (█ ░) don't crash on a
+# cp1251 console. Redirect stdout to a file, or pipe, that is UTF-8.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except AttributeError:
+    pass
+
 DEBU = False
 
 TAB = '\t'
@@ -22,7 +29,7 @@ def tobin(x, count=8):
     """
     return "".join(map(lambda y:str((x>>y)&1), range(count-1, -1, -1)))
 
-def getbinary(x, fill_0=".", fill_1="#"):
+def getbinary(x, fill_0="░", fill_1="█"):   # clear = light shade, set = full block
     x = tobin(x)
     x = x.replace("0", fill_0)
     x = x.replace("1", fill_1)

@@ -1,68 +1,73 @@
+; --- do_snake --------------------------------------------------
+; @done
+; Spawn the snake when the arena is clear: a head (SNAKE1) plus 4
+; body segments (SNAKE2) and a tail (SNAKE3), chained across x.
+; In: ix = alien slot
 do_snake:
-	ld a, (ix+$23)
+	ld a, (ix+ALIEN.index)
 	cp $01
 	ret nz
 
-	ld a, (ix+$1F)
+	ld a, (ix+ALIEN.spawn)
 	and a
-	jr z, LC203
+	jr z, .spawn
 
-	dec (ix+$1F)
+	dec (ix+ALIEN.spawn)
 
 	ret
 
 
-LC203:
+.spawn:
 	ld a, (ALIEN.1)
 	and $3F
 	ret nz
 
-	ld (ix+$1F), $32
+	ld (ix+ALIEN.spawn), $32
 	push ix
 	ld c, $C0
 	ld ix, ALIEN.1
-	ld de, $0026
-	ld (ix+$00), $12
+	ld de, ALIEN_LEN
+	ld (ix+ALIEN.state), $12
 
 	ld hl, TEMPLATE_SNAKE1
 
 	call copy_alien_template
 
-	ld (ix+$03), c
-	ld (ix+$04), $50
-	ld (ix+$11), $03
-	ld (ix+$12), $00
+	ld (ix+ALIEN.x), c
+	ld (ix+ALIEN.y), $50
+	ld (ix+ALIEN.param1), $03
+	ld (ix+ALIEN.param2), $00
 	add ix, de
 	ld a, c
 	add a, $06
 	ld c, a
 	ld b,$04
 
-LC239:
-	ld (ix+$00), $13
+.body_loop:
+	ld (ix+ALIEN.state), $13
 
 	ld hl, TEMPLATE_SNAKE2
 
 	call copy_alien_template
 
-	ld (ix+$03), c
-	ld (ix+$04), $00
-	ld (ix+$1B), $00
+	ld (ix+ALIEN.x), c
+	ld (ix+ALIEN.y), $00
+	ld (ix+ALIEN.xvel), $00
 	ld a, c
 	add a, $06
 	ld c, a
 	add ix, de
-	djnz LC239
+	djnz .body_loop
 
-	ld (ix+$00), $13
+	ld (ix+ALIEN.state), $13
 
 	ld hl, TEMPLATE_SNAKE3
 
 	call copy_alien_template
 
-	ld (ix+$03), c
-	ld (ix+$04), $00
-	ld (ix+$1B), $FF
+	ld (ix+ALIEN.x), c
+	ld (ix+ALIEN.y), $00
+	ld (ix+ALIEN.xvel), $FF
 	pop ix
 
 	ret

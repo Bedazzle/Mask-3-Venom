@@ -1,3 +1,7 @@
+; --- prepare_multicolor ----------------------------------------
+; @done
+; Prepare the multicolour logo buffer (BUFF_F2F0) and latch the
+; current multicolour screen address applied each frame.
 prepare_multicolor:
 	ld hl, BUFF_F2F0+1
 	ld de, BUFF_F2F0

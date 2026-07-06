@@ -1,3 +1,5 @@
+; --- action_by_accum -------------------------------------------
+; @done
 ; choose target to jump by A value
 ; in: A is 2 to 12
 
@@ -33,16 +35,16 @@ trunk_5:
 	jp go_fly
 
 trunk_6:
-	jp LB99B
+	jp player_standing
 
 trunk_7:
-	jp LB9B8
+	jp player_dying
 
 trunk_8:
-	jp LB9D8
+	jp teleport_to_level
 
 trunk_9:
 	jp go_appear
 
 trunk_10:
-	jp LBA7B
+	jp finish_appear

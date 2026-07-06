@@ -1,3 +1,6 @@
+; --- slot_blinking ---------------------------------------------
+; @done
+; Blink the active weapon-slot highlight on the HUD.
 slot_blinking:
 	ld a, (SLOT.BLINK)
 	push af

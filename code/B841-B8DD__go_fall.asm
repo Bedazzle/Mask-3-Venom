@@ -1,3 +1,8 @@
+; --- go_fall ---------------------------------------------------
+; @done
+; Player fall physics (gravity). The Jackrabbit weapon (WEAPON $05)
+; diverts to flying instead of falling.
+; In: ix = player
 go_fall:
 	ld iy, (ACTIVE_SLOT)
 	ld a, (iy + SLOT.WEAPON)
@@ -5,107 +10,107 @@ go_fall:
 	cp $05		; Jackrabbit
 	jr nz, not_flying
 
-	jp LB8DE
+	jp start_fly
 
 
-LB84F:
-	defb $C9	; ??? optimize ???
+.pad:
+	ret	; unreachable padding byte
 
 
 not_flying:
-	ld a, (LA45A)
+	ld a, (PLAYER_X_DISP)
 	and a
-	jr z, LB87F_2
+	jr z, fall_apply
 
-	bit 7, (ix+$13)
-	jr nz, LB850_0
+	bit 7, (ix+ALIEN.draw_x)
+	jr nz, .commit
 
-	ld a, (LB3EA)
+	ld a, (BLAST_ARMED)
 	and a
-	jr nz, LB850_0
+	jr nz, .commit
 
-	ld hl, (LB3E6)
+	ld hl, (PLAYER_CELL_LEAD)
 	ld de, $0040
 
-	call LB993
-	jr c, LB87F_2
+	call is_solid
+	jr c, fall_apply
 
 	add hl, de
 
-	call LB993
-	jr c, LB87F_2
+	call is_solid
+	jr c, fall_apply
 
 	add hl, de
 
-	call LB993
-	jr c, LB87F_2
+	call is_solid
+	jr c, fall_apply
 
-LB850_0:
-	call LB87F
+.commit:
+	call fall_move_x
 
-	jp LB87F_2
+	jp fall_apply
 
-LB87F:
+fall_move_x:
 	ld a, (PLAYER_X_COORD)
 
 	cp $3B
-	jr nc, LB87F_0
+	jr nc, .check_right
 
 	call go_left_room
-	jr nz, LB87F_2
+	jr nz, fall_apply
 
-	ld (ix+$1B), $00
-	jr LB87F_2
+	ld (ix+ALIEN.xvel), $00
+	jr fall_apply
 
-LB87F_0:
+.check_right:
 	cp $B6
-	jr c, LB87F_1
+	jr c, .walk
 
 	call go_right_room
-	jr nz, LB87F_2
+	jr nz, fall_apply
 
-	ld (ix+$1B), $00
-	jr LB87F_2
+	ld (ix+ALIEN.xvel), $00
+	jr fall_apply
 
-LB87F_1:
-	add a, (ix+$1B)
+.walk:
+	add a, (ix+ALIEN.xvel)
 	ld (PLAYER_X_COORD), a
 
 	ret
 
-LB87F_2:
-	call LB706
+fall_apply:
+	call check_ground
 
 	and a
-	jr nz, LB87F_4
+	jr nz, .landed
 
-	ld a, (LA450)
-	add a, (ix+$04)
+	ld a, (PLAYER_JUMP_IDX)
+	add a, (ix+ALIEN.y)
 	ld (PLAYER_Y_COORD), a
-	ld a, (LA450)
+	ld a, (PLAYER_JUMP_IDX)
 
 	cp $08
 	ret z
 
 	ld c, $08
-	ld a, (LA194)
+	ld a, (SPRITESET)
 
 	cp $02
-	jr nz, LB87F_3
+	jr nz, .theme2
 
 	ld a, (SLOT.BLINK)
 	and $03
 	ret nz
 
-LB87F_3:
-	inc (ix+$11)
+.theme2:
+	inc (ix+ALIEN.param1)
 
 	ret
 
-LB87F_4:
-	ld (ix+$00), $01
+.landed:
+	ld (ix+ALIEN.state), $01
 	ld a, (PLAYER_Y_COORD)
 	and $F8
 	ld (PLAYER_Y_COORD), a
 
-	jp LB3EB_1
+	jp update_player_1

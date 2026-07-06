@@ -1,3 +1,5 @@
+; --- detect_kempston -------------------------------------------
+; @done
 ; out: A=0 kempston present
 ;   A<>0 no kempston
 ; https://zxpress.ru/article.php?id=16611

@@ -1,3 +1,5 @@
+; --- decode_pass -----------------------------------------------
+; @done
 ; DE=password address
 ; HL=password buffer
 decode_pass:

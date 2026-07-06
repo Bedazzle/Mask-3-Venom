@@ -1,3 +1,7 @@
+; --- clear_scr_more --------------------------------------------
+; @done
+; Clear the screen bitmap + attributes (used before drawing the
+; Gremlin logo).
 clear_scr_more:		; clear screen for gremlin logo
 	ld hl, SCREEN
 	ld de, SCREEN+1

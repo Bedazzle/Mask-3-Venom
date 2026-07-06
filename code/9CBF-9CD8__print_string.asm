@@ -1,3 +1,8 @@
+; --- print_string ----------------------------------------------
+; @done
+; Print a string: find its screen bitmap address, then print each
+; character glyph in turn.
+; In: hl = string, de = screen position
 print_string:
 	push bc
 	push de

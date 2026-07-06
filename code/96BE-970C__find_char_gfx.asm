@@ -1,3 +1,9 @@
+; --- find_char_gfx ---------------------------------------------
+; @done
+; Map a character code to its 8x8 font glyph: letters via
+; FONT_CHARS, digits via FONT_DIGITS, symbols via FONT_SYMBOLS.
+; In: a = char code
+; Out: bc = glyph address
 find_char_gfx:
 	and $7F
 	

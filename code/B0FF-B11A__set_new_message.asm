@@ -1,7 +1,10 @@
+; --- set_new_message -------------------------------------------
+; @done
+; Queue a new HUD weapon-name message, resetting the scroller.
 set_new_message:
 	ld a, $FF
 	ld (CURRENT_WEAPON), a
-	ld (LB0FE), a
+	ld (WEAPON_PANEL_FLAG), a
 	push hl
 	xor a
 loop_count_letters:
@@ -17,4 +20,4 @@ set_message:
 	ld (MESSAGE_ADDRESS), hl
 	ld (MESSAGE_LENGTH), a
 
-	jp LB0AC_2
+	jp start_text_scroll

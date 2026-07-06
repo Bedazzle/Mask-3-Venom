@@ -1,3 +1,6 @@
+; --- print_score -----------------------------------------------
+; @done
+; Print the 8-digit score from SCORE_BUFFER using the big font.
 print_score:
 	ld l, $77
 	exx

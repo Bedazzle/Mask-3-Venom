@@ -1,11 +1,12 @@
+; --- move_bridge -----------------------------------------------
+; @done
+; Animate the bridge tiles via BRIDGE_PTR (extend / retract).
 move_bridge:
-	ld hl, (LAA72)
+	ld hl, (BRIDGE_PTR)
 	ld a, h
 	or l
 
-	;display "here: move_bridge", $
 	ret z
-	;ret
 
 	ld a, (BRIDGE_DIR)
 	and a
@@ -15,49 +16,49 @@ bridge_to_right:
 	ld a, (hl)
 
 	cp $69
-	jr z, LCA3D_0
+	jr z, .place
 
 	ld a, $69
-	jp LCA3D_5
+	jp bridge_done
 
-LCA3D_0:
+.place:
 	inc hl
 	ld a, (hl)
 	and a
-	jr z, LCA3D_1
+	jr z, .placed
 
 	dec hl
-	ld (LAA72), hl
+	ld (BRIDGE_PTR), hl
 	or $FF
 	ld (BRIDGE_DIR), a
 	ld a, $6B
 
-	jp LCA3D_5
+	jp bridge_done
 
-LCA3D_1:
-	ld (LAA72), hl
+.placed:
+	ld (BRIDGE_PTR), hl
 	ld a, $6B
 
-	jp LCA3D_5
+	jp bridge_done
 
 bridge_to_left:
 	ld a, (hl)
 
 	cp $6B
-	jr z, LCA3D_3
+	jr z, .place
 	
 	ld a, $6B
 
-	jp LCA3D_5
+	jp bridge_done
 	
-LCA3D_3:
+.place:
 	dec hl
 	ld a, (hl)
 
 	cp $69
-	jr nz, LCA3D_4
+	jr nz, .placed
 
-	ld (LAA72), hl
+	ld (BRIDGE_PTR), hl
 	inc hl
 	xor a
 	ld (hl), a
@@ -74,15 +75,15 @@ LCA3D_3:
 
 	ret
 
-LCA3D_4:
+.placed:
 	inc hl
-	ld (LAA72), hl
+	ld (BRIDGE_PTR), hl
 	xor a
 	ld (BRIDGE_DIR), a
 
 	ret
 
-LCA3D_5:
+bridge_done:
 	ld (hl), a
 	ld de, $0020
 	add hl, de

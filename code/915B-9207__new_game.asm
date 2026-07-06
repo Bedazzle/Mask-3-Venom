@@ -1,3 +1,7 @@
+; --- new_game --------------------------------------------------
+; @done
+; Start / restart a game: reset the stack, initialise game state,
+; then fall into the per-life setup.
 new_game:
 	di
 	pop hl
@@ -29,7 +33,7 @@ new_game:
 	ld (PLAYER_SPRITEADR), hl
 
 	ld a, $0B
-	ld (LA43F), a
+	ld (PLAYER), a
 
 	ld a, $01				; facing 0-127 right, 128-255 left
 	ld (PLAYER_FACING), a
@@ -92,11 +96,11 @@ reset_next:
 
 
 	xor a
-	ld (LC0D6), a
-	ld (LB2F8), a
-	ld (LA2D0-1), a
-	ld (LBAA7), a
-	ld (LB3EA), a
+	ld (BOSS_ACTIVE), a
+	ld (DROWNING), a
+	ld (draw_all_actors-1), a
+	ld (INPUT_LOCK), a
+	ld (BLAST_ARMED), a
 
 	ld hl, SCORE_BUFFER
 	ld b, $04
@@ -106,6 +110,6 @@ loop_score_zero:
 	inc hl
 	djnz loop_score_zero
 
-	call LA89D
+	call draw_room
 
 	jp check_teleports

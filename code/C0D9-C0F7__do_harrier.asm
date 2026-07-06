@@ -1,14 +1,19 @@
+; --- do_harrier ------------------------------------------------
+; @done
+; Spawn the harrier mini-boss (state 8) unless one is already
+; active (BOSS_ACTIVE); seeds its sweep counter (HARRIER_SWEEP).
+; In: ix = alien slot
 do_harrier:
-	ld a, (LC0D6)
+	ld a, (BOSS_ACTIVE)
 	and a
 	ret nz
 
-	ld (ix+$00),8
-	ld (ix+$04), $32
+	ld (ix+ALIEN.state),8
+	ld (ix+ALIEN.y), $32
 	ld a, $FF
-	ld (LC0D6), a
+	ld (BOSS_ACTIVE), a
 	ld hl, $0300
-	ld (LC0D7), hl
+	ld (HARRIER_SWEEP), hl
 
 	ld hl, TEMPLATE_HARRIER
 

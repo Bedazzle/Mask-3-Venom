@@ -1,3 +1,7 @@
+; --- interrupt -------------------------------------------------
+; @done
+; IM2 interrupt handler (per frame): border, menu draw, sound
+; engine, 128K paging, message scroller, and the fire-to-exit check.
 interrupt:
 	push af
 	ex af, af'
@@ -12,86 +16,82 @@ interrupt:
 	push ix
 	push iy
 
-	ld hl, L9224
+	ld hl, FRAME_COUNTER
 	inc (hl)
 
-	ld a, (L9225)
+	ld a, (BORDER_VALUE)
 	out ($FE), a
 
-	ld a, (L970E)
+	ld a, (IN_MENU)
 	and a
 
-	call z, LBB4C
+	call z, check_cheat_password
 	call nz, draw_main_menu
 
-	ld a, (LFFFE)
+	ld a, (IS_128K)
 	and a
-	jr nz, L9226_3
+	jr nz, .sound
 
 	ld bc, $7FFD
 	ld a, $14
 	out (c), a
 
-	ld a, (L9222)
+	ld a, (SND_TRIG_1)
 	and a
-	jr z, L9226_0
+	jr z, .flag2
 
 	dec a
 
-	call LBFD2_1
+	call copy_from_base_lo
 
 	xor a
-	ld (L9222), a
-L9226_0:
-	ld a, (L9223)
+	ld (SND_TRIG_1), a
+.flag2:
+	ld a, (SND_TRIG_2)
 	and a
-	jr z, L9226_1
+	jr z, .frame_calls
 
-	call LBFD2_3
+	call copy_from_damage
 
 	xor a
-	ld (L9223), a
+	ld (SND_TRIG_2), a
 
-L9226_1:
-	call L946F
-	call L9421
-	call LBFD2_2
+.frame_calls:
+	call clear_alien_vectors
+	call process_sfx_channels
+	call copy_from_base_hi
 
-	ld a, (L970D)
+	ld a, (HUD_ACTIVE)
 	and a
-	jr z, L9226_2
+	jr z, .repage
 
-	ld a, (LC005 + 1)	; outside check !
+	ld a, (base_hi_op + 1)	; outside check !
 
 	cp $FF
 	ld a, $00
 
-	call nz, LBFD2_1
+	call nz, copy_from_base_lo
 
-L9226_2:
+.repage:
 	ld bc, $7FFD
 	ld a, $10
 	out (c), a
 
-	jr L9226_4
+	jr .scroller
 
-L9226_3:
-	call L949F
-	call L94C8
+.sound:
+	call silence_sfx_if_flagged
+	call sound_tick
 
-L9226_4:
-	ld a, (L970D)
+.scroller:
+	ld a, (HUD_ACTIVE)
 	and a
 
-	;display "here: interrupt", $
 	call z, message_scroller
-	;nop
-	;nop
-	;nop
 
-	ld a, (L970D)
+	ld a, (HUD_ACTIVE)
 	and a
-	jr nz, L9226_5
+	jr nz, .restore
 
 	ld a, $7F
 	in a, ($FE)
@@ -104,7 +104,7 @@ L9226_4:
 	bit 0, a
 	jp z, diagonal_clear
 
-L9226_5:
+.restore:
 	pop iy
 	pop ix
 	pop bc

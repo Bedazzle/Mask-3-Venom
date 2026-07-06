@@ -1,3 +1,5 @@
+; --- deadly_loop -----------------------------------------------
+; @done
 ; do a stripes on the border
 ; exit via reset
 ; can be optimized by removing this code

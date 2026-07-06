@@ -1,3 +1,6 @@
+; --- show_weapon_slot ------------------------------------------
+; @done
+; Draw the active weapon slot's icon and ammo/power in the HUD.
 show_weapon_slot:
 	ld ix, (ACTIVE_SLOT)
 

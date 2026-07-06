@@ -1,3 +1,7 @@
+; --- check_teleports -------------------------------------------
+; @done
+; Read the 4 teleport-tile columns from the teleport room (room 5)
+; into TELEPORT_1..3.
 check_teleports:
 	ld hl, ROOMS_LANDSCAPE + 5 * 8	; L7628  TELEPORTS is 5th room, 8 is room width
 	ld de, TELEPORT_1

@@ -1,3 +1,8 @@
+; --- game_finished ---------------------------------------------
+; @done
+; Wipe the screen at end of game.
+; Note: without FIXENDGAME it clears SCREEN_LEN-1 (the whole screen
+; incl. the HUD panel - the original bug); FIXENDGAME limits it to $0FFF.
 game_finished:
 	; cls start
 	ld hl, SCREEN

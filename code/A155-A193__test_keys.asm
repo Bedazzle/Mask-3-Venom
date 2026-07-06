@@ -1,8 +1,13 @@
+; --- test_keys -------------------------------------------------
+; @done
+; Test the 5 control keys (right/left/down/up/fire) via read_key
+; and build the direction+fire bitmask.
+; Out: a = control bits
 test_keys:
 	push bc
 	ld c, $00
 	ld a, (KEY_RIGHT)
-	call LA090
+	call read_key
 	jr nz, test_left
 
 	set 0, c
@@ -10,13 +15,13 @@ test_keys:
 
 test_left:
 	ld a, (KEY_LEFT)
-	call LA090
+	call read_key
 	jr nz, test_down
 
 	set 1, c
 test_down:
 	ld a, (KEY_DOWN)
-	call LA090
+	call read_key
 	jr nz, test_up
 
 	set 2, c
@@ -24,13 +29,13 @@ test_down:
 
 test_up:
 	ld a, (KEY_UP)
-	call LA090
+	call read_key
 	jr nz, test_fire
 
 	set 3, c
 test_fire:
 	ld a, (KEY_FIRE)
-	call LA090
+	call read_key
 	jr nz, copy_keys
 
 	set 4, c

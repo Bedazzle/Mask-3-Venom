@@ -1,3 +1,7 @@
+; --- striped_border --------------------------------------------
+; @done
+; Draw a striped border by racing the beam.
+; Note: DEAD - no callers.
 striped_border:
 	push bc
 	push af

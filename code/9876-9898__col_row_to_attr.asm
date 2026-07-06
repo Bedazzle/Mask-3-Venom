@@ -1,3 +1,9 @@
+; --- col_row_to_attr -------------------------------------------
+; @done
+; Convert a column/row to an attribute-cell address (branches to
+; out_of_screen if off the 32x24 grid).
+; In: d = row, e = col
+; Out: hl = attr address
 col_row_to_attr:
 	; E=x, D=y
 	ex af, af'

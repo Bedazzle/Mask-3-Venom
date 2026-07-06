@@ -1,7 +1,11 @@
+; --- playfield_to_screen ---------------------------------------
+; @done
+; Render the playfield map (PLAYFIELD_MAP) to the screen - the main
+; per-frame room draw, expanding each tile through MIRROR_LUT.
 playfield_to_screen:
 	ld a, $FF
-	ld (LF3BF), a
-	ld hl, LF600
+	ld (RENDER_FLAG), a
+	ld hl, MIRROR_LUT
 	
 	ld ix, draw_loop
 	

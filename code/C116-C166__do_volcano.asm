@@ -1,23 +1,28 @@
+; --- do_volcano ------------------------------------------------
+; @done
+; Spawn a volcano projectile (state $0C) from a VOLCANO_1/VOLCANO_2
+; vent, with random launch velocity and facing.
+; In: ix = alien slot
 do_volcano:
-	ld de, (LAC9C)
-	ld hl, (LAC9E)
+	ld de, (VOLCANO_1)
+	ld hl, (VOLCANO_2)
 	ld a, d
 	or e
 	ret z
 
 	ld a, h
 	or l
-	jr z, LC12B
+	jr z, .spawn
 
 	call generate_random
 
 	rrca
-	jr c, LC12B
+	jr c, .spawn
 
 	ex de, hl
 
-LC12B:
-	ld (ix+$00), $0C
+.spawn:
+	ld (ix+ALIEN.state), $0C
 
 	ld hl, TEMPLATE_VOLCANO
 
@@ -25,34 +30,34 @@ LC12B:
 
 	ld a, e
 	add a, $0A
-	ld (ix+$04), a
+	ld (ix+ALIEN.y), a
 
 	call generate_random
 
 	and $07
 	add a, d
-	ld (ix+$03), a
+	ld (ix+ALIEN.x), a
 	sub d
 	sub $04
-	ld (ix+$1B), a
+	ld (ix+ALIEN.xvel), a
 
 	call generate_random
 
 	and $07
 	add a, $05
 	neg
-	ld (ix+$1C), a
+	ld (ix+ALIEN.yvel), a
 
 	call generate_random
 
 	rrca
-	ld (ix+$02), a
+	ld (ix+ALIEN.facing), a
 	ld a, $01
-	jr c, LC163
+	jr c, .set_facing
 
 	ld a, $FF
 
-LC163:
-	ld (ix+$11), a
+.set_facing:
+	ld (ix+ALIEN.param1), a
 
 	ret

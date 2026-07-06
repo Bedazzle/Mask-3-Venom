@@ -1,97 +1,102 @@
+; --- go_jump ---------------------------------------------------
+; @done
+; Player jump physics: rise along the jump arc while the jump key
+; is held, then transition to falling.
+; In: ix = player
 go_jump:
-	ld a, (LA194)
+	ld a, (SPRITESET)
 	cp $02
-	jr nz, LB7B5_0
+	jr nz, .tick
 
 	ld a, (SLOT.BLINK)
 	and $03
-	jr z, LB7B5_1
+	jr z, .rise
 
-LB7B5_0:
-	ld a, (LA450)
+.tick:
+	ld a, (PLAYER_JUMP_IDX)
 	inc a
-	ld (LA450), a
+	ld (PLAYER_JUMP_IDX), a
 
 	cp $01
-	jr nz, LB7B5_1
+	jr nz, .rise
 
-	ld (ix+$00), $01
-	jp LB6E8_0
+	ld (ix+ALIEN.state), $01
+	jp start_fall_0
 
-LB7B5_1:
-	ld hl, (LB3E8)
+.rise:
+	ld hl, (PLAYER_CELL_PTR)
 
-	call LB993
-	jp c, LB7B5_6
+	call is_solid
+	jp c, .blocked
 
 	inc l
 
-	call LB993
-	jp c, LB7B5_6
+	call is_solid
+	jp c, .blocked
 
-	ld a, (LA450)
-	add a, (ix+$04)
+	ld a, (PLAYER_JUMP_IDX)
+	add a, (ix+ALIEN.y)
 	ld (PLAYER_Y_COORD), a
-	ld a, (LA45A)
+	ld a, (PLAYER_X_DISP)
 	and a
 	ret z
 
-	bit 7, (ix+$13)
-	jr nz, LB7B5_2
+	bit 7, (ix+ALIEN.draw_x)
+	jr nz, .move_x
 
-	ld a, (LB3EA)
+	ld a, (BLAST_ARMED)
 	and a
-	jr nz, LB7B5_2
+	jr nz, .move_x
 
-	ld hl, (LB3E6)
+	ld hl, (PLAYER_CELL_LEAD)
 	ld de, $0040
 
-	call LB993
+	call is_solid
 	ret c
 
 	add hl, de
 
-	call LB993
+	call is_solid
 	ret c
 
 	srl d
 	rr e
 	add hl, de
 
-	call LB993
+	call is_solid
 	ret c
 
-LB7B5_2:
+.move_x:
 	ld a, (PLAYER_X_COORD)
 
 	cp $3B
-	jr nc, LB7B5_3
+	jr nc, .check_right
 
 	call go_left_room
-	jr z, LB7B5_5
+	jr z, .land
 
 	ret
 
-LB7B5_3:
+.check_right:
 	cp $B6
-	jr c, LB7B5_4
+	jr c, .walk
 
 	call go_right_room
-	jr z, LB7B5_5
+	jr z, .land
 
 	ret
 
-LB7B5_4:
-	add a, (ix+$1B)
+.walk:
+	add a, (ix+ALIEN.xvel)
 	ld (PLAYER_X_COORD), a
 
 	ret
-LB7B5_5:
-	ld (ix+$00), $01
+.land:
+	ld (ix+ALIEN.state), $01
 
 	ret
 
-LB7B5_6:
-	ld (ix+$00), $01
+.blocked:
+	ld (ix+ALIEN.state), $01
 
-	jp LBA93
+	jp apply_hazard_damage

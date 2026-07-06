@@ -1,6 +1,10 @@
+; --- generate_tables -------------------------------------------
+; @done
+; Build the multicolour EXPAND_LUT and MIRROR_LUT lookup tables
+; (one-time, at startup).
 generate_tables:
-	ld hl, LF700
-LA860_0:
+	ld hl, EXPAND_LUT
+.build_expand:
 	ld a, l
 	ld d, l
 	add a, a
@@ -9,15 +13,15 @@ LA860_0:
 	or l
 	ld (hl), a
 	inc l
-	jr nz, LA860_0
+	jr nz, .build_expand
 
-	ld hl, LF800	; 0,0,0,0,1,1,1,1,2,2,2,2....
-LA860_1:
+	ld hl, PIXEL_COL_LUT	; 0,0,0,0,1,1,1,1,2,2,2,2....
+.build_pixcol:
 	ld e, h
 	ld b, $00
 	ld a, l
 	ld d, $03		; 3x2=6 blocks
-LA860_2:
+.pixcol_bits:
 	srl a
 	rr b
 	rra
@@ -27,13 +31,13 @@ LA860_2:
 	ld (hl), b
 	inc h
 	dec d
-	jr nz, LA860_2
+	jr nz, .pixcol_bits
 
 	ld h, e
 	inc l
-	jr nz, LA860_1
+	jr nz, .build_pixcol
 
-	ld hl, LF600	; MIRRORTABLE
+	ld hl, MIRROR_LUT	; MIRRORTABLE
 mirror_table:
 	ld a, l
 	ld b, $08

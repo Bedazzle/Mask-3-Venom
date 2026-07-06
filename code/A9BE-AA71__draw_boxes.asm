@@ -1,3 +1,7 @@
+; --- draw_boxes ------------------------------------------------
+; @done
+; Stamp the current level's weapon boxes (from BOXES) into the
+; playfield map.
 draw_boxes:
 	ld hl, BOXES
 	ld de, $0004
@@ -16,7 +20,7 @@ draw_boxes:
 draw_box:
 	ld (ix + BOX.X), $FF
 
-	call LAA59
+	call find_box_entry
 
 	cp $FF
 	ret z
@@ -53,17 +57,17 @@ draw_box:
 	add hl, hl		; x16
 	add hl, hl		; x32
 	add hl, de
-	ld de, LF0C0
-	add hl, de		; HL = LF0C0 + BOX.Y*32
+	ld de, PLAYFIELD_MAP
+	add hl, de		; HL = PLAYFIELD_MAP + BOX.Y*32
 
 	ld (ix + BOX.BUFF_LO), l
 	ld (ix + BOX.BUFF_HI), h
 
-	ld a, (LA2CE)
+	ld a, (DRAW_COLOR_BASE)
 	ld l, a
-	ld (ix + BOX._07), a
+	ld (ix + BOX.TILE), a
 	add a, $04
-	ld (LA2CE), a
+	ld (DRAW_COLOR_BASE), a
 
 	ld h, $1D
 	add hl, hl		; x2
@@ -107,9 +111,9 @@ draw_box:
 	ret
 
 
-LAA59:
+find_box_entry:
 	exx
-LAA59_0:
+.scan:
 	ld a, (hl)
 
 	cp $FF
@@ -118,13 +122,13 @@ LAA59_0:
 
 	exx
 	cp c
-	jr z, LAA59_2
+	jr z, .found
 
-LAA59_1:
+.next:
 	add hl, de
-	jr LAA59_0
+	jr .scan
 
-LAA59_2:
+.found:
 	inc hl
 	inc hl
 	ld a, (hl)
@@ -133,7 +137,7 @@ LAA59_2:
 	sub b
 
 	cp $20
-	jr nc, LAA59_1
+	jr nc, .next
 
 	exx
 

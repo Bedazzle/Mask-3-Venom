@@ -13,13 +13,13 @@
 	ORG $6000
 
 STARTBLOCK:
-	include "data/sprites_6000-60FF.asm"
-	include "data/sprites_6100-61FF.asm"
-	include "data/sprites_6200-62FF.asm"
+	include "data/6000-60FF__sprites.asm"
+	include "data/6100-61FF__sprites.asm"
+	include "data/6200-62FF__sprites.asm"
 	
-	include "data/data_6300-75FF.asm"
-	include "data/rooms_7600-84FF.asm"
-	include "data/backgr_tiles_8500-90FF.asm"
+	include "data/6300-75FF__spritesheet_banks.asm"
+	include "data/7600-84FF__rooms.asm"
+	include "data/8500-90FF__backgr_tiles.asm"
 
 	include "code/9100-915A__startup.asm"
 	include "code/915B-9207__new_game.asm"
@@ -27,158 +27,180 @@ STARTBLOCK:
 	include "code/9210-9221__striped_border.asm"
 
 
-L9222:
-	defb $00
-L9223:
-	defb $FF
-L9224:
-	defb $00
+; small interrupt/sound scratch: SND_TRIG_1/SND_TRIG_2 = 128K sound-trigger flags (interrupt
+; calls into copy_alien_template when set); FRAME_COUNTER = frame counter (inc per interrupt);
+; BORDER_VALUE = current border/beeper port value.
+SND_TRIG_1:
+	DB $00
+SND_TRIG_2:
+	DB $FF
+FRAME_COUNTER:
+	DB $00
 	
-L9225:
-	defb $00
+BORDER_VALUE:
+	DB $00
 
 	include "code/9226-92C2__interrupt.asm"
 	include "code/92C3-92DF__generate_random.asm"
 
-	include "code/92E0-9420___UNKNOWN.asm"
-	include "code/9421-946B___UNKNOWN.asm"
+	include "code/92E0-9420__play_sfx.asm"
+	include "code/9421-946B__process_sfx_channels.asm"
 
 
-L946C:
-	db $00
-L946D:
-	db $00
-L946E:
-	db $00
+; per-type "reset this alien vector + silence its sound" flags, polled by
+; clear_alien_vectors (RESET_JUMPER_SND/D/E -> state vectors 6/12/18).
+RESET_JUMPER_SND:
+	DB $00
+RESET_VOLCANO_SND:
+	DB $00
+RESET_SNAKE_SND:
+	DB $00
 
 
-	include "code/946F-949E___UNKNOWN.asm"
+	include "code/946F-949E__clear_alien_vectors.asm"
 
 
-; Routine at 949F
-L949F:
-	ld hl, L946C
+; --- silence_sfx_if_flagged ----------------------------------
+; @done
+; If the reset flag RESET_JUMPER_SND is set, clear it and silence the object
+; sound (SOUND_STATE). Called each frame from the interrupt.
+silence_sfx_if_flagged:
+	ld hl, RESET_JUMPER_SND
 	ld a, (hl)
 	and a
 	ret z
 	xor a
-	ld (L94AB), a
+	ld (SOUND_STATE), a
 	ld (hl), a
 	ret
 
 
-L94AB:
-	defb $00,$00,$00,$00
+; Active object-sound state driven by sound_tick:
+;   [0]   = frames remaining ($FF = indefinite, 0 = silent)
+;   [1,2] = pitch accumulator (advanced by the source step each frame)
+;   [3,4] = pointer to the source descriptor (its +$07/$08 = step)
+SOUND_STATE:
+	DB $00,$00,$00,$00
 
 
-L94AF:
-	ld (L94AB+3), ix
-	ld a, (ix+$0B)
-	ld (L94AB), a
-	ld l, (ix+$0C)
-	ld h, (ix+$0D)
-	ld (L94AB+1), hl
+; --- load_sfx ------------------------------------------------
+; @done
+; Load a sound descriptor into SOUND_STATE (duration, start pitch,
+; source pointer). Called by play_sfx. In: ix = descriptor
+load_sfx:
+	ld (SOUND_STATE+3), ix
+	ld a, (ix+SFX.DURATION)
+	ld (SOUND_STATE), a
+	ld l, (ix+SFX.PITCH_LO)
+	ld h, (ix+SFX.PITCH_HI)
+	ld (SOUND_STATE+1), hl
 	ret
 
 
-L94C3:
+; --- stop_sfx ------------------------------------------------
+; @done
+; Silence the object sound (clear the frame counter).
+stop_sfx:
 	xor a
-	ld (L94AB), a
+	ld (SOUND_STATE), a
 
 	ret
 
 
-	include "code/94C8-9509___UNKNOWN.asm"
+	include "code/94C8-9509__sound_tick.asm"
 
 
 LEVEL_NUMBER:
-	defb $00
+	DB $00
 	
 ROOM_EXITS_ADDR:
-	defb $00,$00
+	DB $00,$00
 	
 ROOM_NUMBER:
-	defb $00
+	DB $00
 
 BOXES:
 	;    Lvl  ID  					X   Y
-	defb $00, WEAPON.Penetrator,	$12,$0C	; Penetrator
-	defb $00, WEAPON.Backlash,		$16,$0C	; Backlash
+	DB $00, WEAPON.Penetrator,	$12,$0C	; Penetrator
+	DB $00, WEAPON.Backlash,		$16,$0C	; Backlash
 
-	defb $03, WEAPON.Healer,		$19,$08	; Healer
-	defb $03, WEAPON.Blaster,		$1C,$08	; Blaster
+	DB $03, WEAPON.Healer,		$19,$08	; Healer
+	DB $03, WEAPON.Blaster,		$1C,$08	; Blaster
 
-	defb $05, WEAPON.Healer,		$0C,$08	; Healer
-	defb $05, WEAPON.Jackrabbit,	$0E,$08	; Jackrabbit
+	DB $05, WEAPON.Healer,		$0C,$08	; Healer
+	DB $05, WEAPON.Jackrabbit,	$0E,$08	; Jackrabbit
 
-	defb $08, WEAPON.Blaster,		$06,$08	; Blaster
+	DB $08, WEAPON.Blaster,		$06,$08	; Blaster
 
-	defb $0A, WEAPON.Blaster,		$0E,$0C	; Blaster
-	defb $0A, WEAPON.Lifter,		$12,$0C	; Lifter
-	defb $0A, WEAPON.Jackrabbit,	$8C,$0C	; Jackrabbit
+	DB $0A, WEAPON.Blaster,		$0E,$0C	; Blaster
+	DB $0A, WEAPON.Lifter,		$12,$0C	; Lifter
+	DB $0A, WEAPON.Jackrabbit,	$8C,$0C	; Jackrabbit
 
-	defb $0B, WEAPON.Jackrabbit,	$4A,$0C	; Jackrabbit
+	DB $0B, WEAPON.Jackrabbit,	$4A,$0C	; Jackrabbit
 
-	defb $FF				; terminator
+	DB $FF				; terminator
 
 
-	include "data/data_953B-95FA__levels.asm"
-	include "data/font_chars__95FB-967C.asm"
-	include "data/font_digits__967D-96AE.asm"
-	include "data/font_symbols__96AF-96BD.asm"
+	include "data/953B-95FA__levels.asm"
+	include "data/95FB-967C__font_chars.asm"
+	include "data/967D-96AE__font_digits.asm"
+	include "data/96AF-96BD__font_symbols.asm"
 	include "code/96BE-970C__find_char_gfx.asm"
 
 
 
-L970D:
-	defb $00
-L970E:
-	defb $00,$01
-L9710:
-	defb $FF
+; menu/HUD state flags: HUD_ACTIVE = in-game HUD active; IN_MENU = in main menu;
+; PANEL_DRAWN = panel-drawn-once flag.
+HUD_ACTIVE:
+	DB $00
+IN_MENU:
+	DB $00,$01
+PANEL_DRAWN:
+	DB $FF
+; colour-cycle sequence (0-7 then 7-0) for the pulsing menu-item highlight.
 MENU_COLOR_BLINK:
-	defb $00,$01,$02,$03,$04,$05,$06,$07
-	defb $07,$06,$05,$04,$03,$02,$01,$00
+	DB $00,$01,$02,$03,$04,$05,$06,$07
+	DB $07,$06,$05,$04,$03,$02,$01,$00
     
 COLOR_BLINKER:
-    defb $00,$00
+    DB $00,$00
 
-; Routine at 9723
-L9723:
+; --- setup_main_menu: draw the main-menu screen (banner/logo/hiscore panel) (@done)
+setup_main_menu:
 	ld a, $FF
-	ld (L970D), a
-	ld a, (L9710)
+	ld (HUD_ACTIVE), a
+	ld a, (PANEL_DRAWN)
 	and a
 	call z, panel_to_buffer
 	xor a
-	ld (L9710), a
-	call L984D
+	ld (PANEL_DRAWN), a
+	call menu_wipe_in
 	call clear_scr_more
 	ld hl, BUFF_F2F0
 	ld de, BUFF_F2F0+1
 	ld bc, $0050
 	ld (hl), $00
 	ldir
-	ld hl, L99F0
+	ld hl, MENU_BANNER
 	ld de, $000B
 	ld bc, $0A06
-	call L99B8
-	ld hl, L9BD0
+	call draw_block
+	ld hl, MENU_MID
 	ld de, $0613
 	ld bc, $0201
-	call L99B8
+	call draw_block
 	ld hl, $52E0
 	ld b, $20
 	or $FF
-L9723_0:
+.fill:
 	ld (hl), a
 	inc l
-	djnz L9723_0
+	djnz .fill
 
-	ld hl, L9BE0
+	ld hl, MENU_TITLE
 	ld de, $160A
 	ld bc, $0C02
-	call L99B8
+	call draw_block
 
 	include "code/9775-9875__main_menu_loop.asm"
 	include "code/9876-9898__col_row_to_attr.asm"
@@ -186,9 +208,9 @@ L9723_0:
 	include "code/992F-9950__clear_scr_more.asm"
 	include "code/9951-999D__draw_multi_logo.asm"
 	include "code/999E-99B7__find_bmp_addr.asm"
-	include "code/99B8-99EF___UNKNOWN.asm"
+	include "code/99B8-99EF__draw_block.asm"
 
-	include "data/data_99F0-9C9F.asm"
+	include "data/99F0-9C9F__menu_banner.asm"
 
 	include "code/9CA0-9CBE__panel_to_buffer.asm"
 	include "code/9CBF-9CD8__print_string.asm"
@@ -197,19 +219,19 @@ L9723_0:
 
 MAINMENU_ICONS:
 	;    row col sprite
-	defb $07,$00,$41
-	defb $09,$00,$44
-	defb $0B,$00,$42
-	defb $0D,$00,$45
-	defb $0F,$00,$43
-	defb $11,$00,$46
-	defb $13,$00,$45
+	DB $07,$00,$41
+	DB $09,$00,$44
+	DB $0B,$00,$42
+	DB $0D,$00,$45
+	DB $0F,$00,$43
+	DB $11,$00,$46
+	DB $13,$00,$45
 	
 HISCORE:
-	defb $00,$00,$00,$00
+	DB $00,$00,$00,$00
 
 	include "code/9D1A-9E0F__show_main_menu.asm"
-	include "code/9E10-9E3A___UNKNOWN.asm"
+	include "code/9E10-9E3A__clear_screen_pixels.asm"
 	include "code/9E3B-9E7A__redefine_keys.asm"
 	include "code/9E7B-9E8F__enter_new_key.asm"
 
@@ -233,15 +255,15 @@ WORD_PRESS:
 	ABYTEC 0 "Press"
 
 
-L9EAA:
-	defb $47,$46,$07,$06,$FF
+MENU_ATTR_SEQ:
+	DB $47,$46,$07,$06,$FF
 
 
 copy_F2F0_buff:
-	ld de, LF0C0
+	ld de, PLAYFIELD_MAP
 	ld hl, BUFF_F2F0
 	ld b, $38
-L9EAF_0:
+.loop:
 	push hl
 	ld c, 20		;$14
 	DUP 10
@@ -250,28 +272,28 @@ L9EAF_0:
 	 
 	pop hl
 	inc hl
-	djnz L9EAF_0
+	djnz .loop
 
 	ret
 
 
-	include "data/multicolor_9ED3-9F2D.asm"
+	include "data/9ED3-9F2D__multicolor.asm"
 	include "code/9F2E-9F61__prepare_multicolor.asm"
 	include "code/9F62-9F6C__detect_kempston.asm"
 
 
 TELEPORT_1:
-	defb 0
+	DB 0
 TELEPORT_2:
-	defb 0
+	DB 0
 TELEPORT_3:
-	defb 0
+	DB 0
 
-L9F70:
-	defb 0
+TELEPORT_4:
+	DB 0
 	
 PASS_BUFFER:
-	defs $11
+	DS $11
 
 
 	include "code/9F82-9FF8__enter_password.asm"
@@ -283,56 +305,59 @@ WORD_DOTS:
 
 PASS_1:
 	; MAYHEM
-	defb $72,$10,$54,$64,$22,$72,$00
+	DB $72,$10,$54,$64,$22,$72,$00
 PASS_2:
 	; TRANSMOGRIFY
-	defb $24,$23,$10,$73,$11,$72,$51,$14,$23,$52,$13,$54,$00
+	DB $24,$23,$10,$73,$11,$72,$51,$14,$23,$52,$13,$54,$00
 PASS_3:
 	; VALKYR
-	defb $04,$10,$61,$62,$54,$23,$00
+	DB $04,$10,$61,$62,$54,$23,$00
 PASS_4:
 	; PETALSOFDOOM
-	defb $50,$22,$24,$10,$61,$11,$70,$51,$13,$70,$12,$51,$51,$72,$00
+	DB $50,$22,$24,$10,$61,$11,$70,$51,$13,$70,$12,$51,$51,$72,$00
 
 
 	include "code/A033-A03F__match_buffer.asm"
-	include "code/A040-A080___UNKNOWN.asm"
+	include "code/A040-A080__wipe_screen.asm"
 
 
+; control-key sets: packed keyboard matrix codes (halfrow<<4 | column) for the 5
+; controls in order right, left, down, up, fire - one row per scheme (Sinclair
+; joystick / Cursor / user-defined). read_key tests one code.
 SINCLAIR_KEYS:
-	defb $40,$41,$42,$44,$43
+	DB $40,$41,$42,$44,$43
 
 CURSOR_KEYS:
-	defb $40,$43,$44,$34,$42
+	DB $40,$43,$44,$34,$42
 
 DEFINED_KEYS:
-	defb $70,$50,$61,$20,$21
+	DB $70,$50,$61,$20,$21
 
 
-	include "code/A090-A0B1___UNKNOWN.asm"
+	include "code/A090-A0B1__read_key.asm"
 	include "code/A0B2-A0F0__scan_keyboard.asm"
 
 
 KEYBOARD:
-	defb $40, "ZXCV"		; Caps Shift
-	defb "ASDFG"
-	defb "QWERT"
-	defb "12345"
-	defb "09876"
-	defb "POIUY"
-	defb $0D, "LKJH"		; Enter
-	defb " ", $40, "MNB"		; Symbol Shift
+	DB $40, "ZXCV"		; Caps Shift
+	DB "ASDFG"
+	DB "QWERT"
+	DB "12345"
+	DB "09876"
+	DB "POIUY"
+	DB $0D, "LKJH"		; Enter
+	DB " ", $40, "MNB"		; Symbol Shift
 
 
 	include "code/A119-A137__decode_char.asm"
 
 
 KEY_FIRE_CURRENT:
-	defb $00
+	DB $00
 KEY_FIRE_PREVIOUS:
-	defb $00
+	DB $00
 KEMPSTON_YES:
-	defb $01
+	DB $01
 
 
 	include "code/A13B-A14F__is_fire_pressed.asm"
@@ -340,187 +365,188 @@ KEMPSTON_YES:
 
 ;CONTROL_KEYS:
 KEY_FIRE:
-	defb $40
+	DB $40
 KEY_UP:
-	defb "A"
+	DB "A"
 KEY_DOWN:
-	defb "B"
+	DB "B"
 KEY_LEFT:
-	defb "D"
+	DB "D"
 KEY_RIGHT:
-	defb "C"
+	DB "C"
 
 
 	include "code/A155-A193__test_keys.asm"
-	include "code/A194-A1EF___UNKNOWN.asm"
+	include "code/A194-A1EF__swap_spritesheet.asm"
 	include "code/A1F0-A252__playfield_to_screen.asm"
 
 
-LA253:
-	defs $70
-	defs $08
+SAVED_BOX_TILES:
+	DS $70
+	DS $08
 
-LA2CB:
-	defb $00,$00
+DRAW_DEST:
+	DB $00,$00
     
-LA2CD:
-	defb 0
-LA2CE:
-	defb 0
-LA2CF:
-	defb 0
+DRAW_COLOR:
+	DB 0
+DRAW_COLOR_BASE:
+	DB 0
+DISSOLVE:
+	DB 0
 
 
-	include "code/A2D0-A348___UNKNOWN.asm"
-	include "code/A349-A3ED___UNKNOWN.asm"
+	include "code/A2D0-A348__draw_all_actors.asm"
+	include "code/A349-A3ED__pick_actor_sprite.asm"
 
 
-LA3EE:
-	defb $00,$00
+pad_A3EE:
+	DB $00,$00
 
-LA3F0: 
-	defb $00,$00
-
-
-	include "code/A3F2-A43E__multipliers.asm"
+pad_A3F0: 
+	DB $00,$00
 
 
-; player structure???
+	include "code/A3F2-A43E__calc_frame_addr.asm"
 
-LA43F:
-	defb $01
+
+; PLAYER: the player's 38-byte actor record (same ALIEN layout as ALIEN.1..6)
+
+PLAYER:
+	DB $01
 	
-	defb $00
+	DB $00
 
 PLAYER_FACING: 
-	defb $C8
+	DB $C8
 PLAYER_X_COORD:
-	defb $64
+	DB $64
 PLAYER_Y_COORD:
-	defb $60
+	DB $60
 
 
 PLAYER_WIDTH:
-	defb $04
+	DB $04
 	
-	defb $04,$00
-	defb $00,$00,$00,$00,$00,$00,$00,$00
-LA44F:
-	defb $00 			; number of frames?
+	DB $04,$00
+	DB $00,$00,$00,$00,$00,$00,$00,$00
+PLAYER_FRAME_COUNT:
+	DB $00 			; number of frames?
 	
-LA450:	; ????
-	defb $00,$00
-LA452:
-	defb $00,$00,$00
+PLAYER_JUMP_IDX:	; ????
+	DB $00,$00
+PLAYER_MAP_X:
+	DB $00,$00,$00
 
 PLAYER_SPRITEADR:
-	defb $00,$00
+	DB $00,$00
 
-	defb $00,$01,$00
-LA45A:
-	defb $00  			; x displacement
+	DB $00,$01,$00
+PLAYER_X_DISP:
+	DB $00  			; x displacement
 
-	defb $00,$00,$00
+	DB $00,$00,$00
 
 L_A45E:
-	defb $00,$47,$00,$00,$00,$00,$00
-LA465:
-	defb $01,$00
-	defb $00
-LA468:
-	defb $00
-LA469:
-	defb $00,$02,$02,$00,$00,$00
-	defb $00,$00,$00,$00,$00,$00,$00,$00
-	defb $00,$00,$00,$00,$00,$00,$00,$04
-	defb $FF,$00,$00,$00,$00,$00,$46,$00
-LA487:
-	defb $00,$00,$00,$00
+	DB $00,$47,$00,$00,$00,$00,$00
+PLAYER_BULLET:
+	DB $01,$00
+	DB $00
+BULLET_X:
+	DB $00
+BULLET_Y:
+	DB $00,$02,$02,$00,$00,$00
+	DB $00,$00,$00,$00,$00,$00,$00,$00
+	DB $00,$00,$00,$00,$00,$00,$00,$04
+	DB $FF,$00,$00,$00,$00,$00,$46,$00
+BULLET_HIT:
+	DB $00,$00,$00,$00
 
 
-	include "data/aliens_A48B-A56E.asm"
+	include "data/A48B-A56E__aliens.asm"
 
-	include "code/A56F-A776___UNKNOWN.asm"
-	include "code/A777-A7F2___UNKNOWN.asm"
-	include "code/A7F3-A85F___UNKNOWN.asm"
+	include "code/A56F-A776__draw_sprite.asm"
+	include "code/A777-A7F2__expand_sprite.asm"
+	include "code/A7F3-A85F__mirror_sprite.asm"
 	include "code/A860-A899__generate_tables.asm"
 
 	; draw level
-	include "code/A899-A9BD__UNKNOWN.asm"
+	include "code/A899-A9BD__draw_room.asm"
 	include "code/A9BE-AA71__draw_boxes.asm"
 
 
-LAA72:
-	defb $00,$00
+BRIDGE_PTR:
+	DB $00,$00
 BRIDGE_DIR:
-	defb $00
+	DB $00
 
 
-	include "code/AA75-AAA0___UNKNOWN.asm"
-	include "code/AAA1-ABB4___UNKNOWN.asm"
+	include "code/AA75-AAA0__find_bridge.asm"
+	include "code/AAA1-ABB4__list_special_tiles.asm"
 
 
-LABB5:
-	defb $60,$61,$62,$63,$9C,$9D,$BC,$BD
-	defb $E2,$E3,$E4,$E5,$E6,$E7,$E8,$E9
-	defb $EB,$EC,$ED,$EE,$00
+TILE_SET_1:
+	DB $60,$61,$62,$63,$9C,$9D,$BC,$BD
+	DB $E2,$E3,$E4,$E5,$E6,$E7,$E8,$E9
+	DB $EB,$EC,$ED,$EE,$00
 
-LABCA:
-	defb $51,$52,$71,$72,$A1,$A2,$C0,$C1
-	defb $E0,$E1,$E2,$E3,$E4,$E5,$E6,$E7
-	defb $E8,$E9,$00
+TILE_SET_2:
+	DB $51,$52,$71,$72,$A1,$A2,$C0,$C1
+	DB $E0,$E1,$E2,$E3,$E4,$E5,$E6,$E7
+	DB $E8,$E9,$00
 	
-LABDD:
-	defb $6C,$E2,$E3,$E4,$E5,$E6,$E7,$E8
-	defb $E9,$00
+TILE_SET_3:
+	DB $6C,$E2,$E3,$E4,$E5,$E6,$E7,$E8
+	DB $E9,$00
 	
-LABE7:
-	defb $E0,$E1,$E2,$E3,$E5,$E6,$E7,$E8
-	defb $E9,$EA,$EB,$EC,$00
+TILE_SET_4:
+	DB $E0,$E1,$E2,$E3,$E5,$E6,$E7,$E8
+	DB $E9,$EA,$EB,$EC,$00
 	
-LABF4:
-	defw LABB5
-	defw LABCA
-	defw LABDD
-	defw LABE7
+SPECIAL_TILE_TABLES:
+	DW TILE_SET_1
+	DW TILE_SET_2
+	DW TILE_SET_3
+	DW TILE_SET_4
 
-LABFC:
-	defb $00
+SEARCH_TILE:
+	DB $00
 
 
-	include "code/ABFD-AC41___UNKNOWN.asm"
+	include "code/ABFD-AC41__find_room_tile.asm"
 	include "code/AC42-AC7E__do_cannon.asm"
 
 
-LAC7F:
-	defb $00
+GROUND_ROW:
+	DB $00
 
 
-LAC80:
+; --- find_ground_row: scan the room map for the ground tile (bit-7 bg colour); store its Y in GROUND_ROW (move_jumper arc base) (@done)
+find_ground_row:
 	xor a
 	ex af, af'
-	ld hl, LF0C0
+	ld hl, PLAYFIELD_MAP
 	ld de, $0020
 	ld b, $EF
-LAC80_0:
+.scan:
 	ld c, (hl)
 	ld a, (bc)
 	bit 7, a
-	jr nz, LAC80_1
+	jr nz, .found
 	add hl, de
 	ex af, af'
 	add a, $08
 	ex af, af'
-	jr LAC80_0
-LAC80_1:
+	jr .scan
+.found:
 	ex af, af'
-	ld (LAC7F), a
+	ld (GROUND_ROW), a
 	ret
 
 
-	include "code/AC9C-ACBB___UNKNOWN.asm"
+	include "code/AC9C-ACBB__find_volcanoes.asm"
 	include "code/ACBC-ACD9__check_teleports.asm"
-	include "code/ACDA-AD27___UNKNOWN.asm"
+	include "code/ACDA-AD27__find_rotators.asm"
 	include "code/AD28-ADBE__welcome_message.asm"
 	include "code/ADBF-ADD1__decode_pass.asm"
 	include "code/ADD2-ADF5__decrease_penetrator.asm"
@@ -534,7 +560,7 @@ WELL_DONE:
 	ABYTEC 0 "WELL DONE."
 
 SCORE_BUFFER:
-	defb $00,$00,$00,$00	; digits encoded as nibbles
+	DB $00,$00,$00,$00	; digits encoded as nibbles
 
 
 	include "code/AE45-AE60__increase_score.asm"
@@ -542,230 +568,229 @@ SCORE_BUFFER:
 
 
 ENERGY:
-	defb $00
+	DB $00
 ENERGY_TMP:
-	defb $00
+	DB $00
 
 
 	include "code/AEA8-AF0B__draw_energy.asm"
 
 
 SLOT.BLINK:
-	defb $00,$00
+	DB $00,$00
 	
 CURRENT_WEAPON:
-	defb $00
+	DB $00
 	
 WEAPON_TEXT_LEN:
-	defb $00
+	DB $00
 
 WEAPON_TEXT:
-	defb $00,$00
+	DB $00,$00
 LETTER_SCROLLER:
-	defb $00,$00
-LAF14:
-	defb $00
+	DB $00,$00
+SCROLLER_STATE:
+	DB $00
 
 BUFFER_AF15:
-	defb $00,$00,$00,$00,$00,$00
+	DB $00,$00,$00,$00,$00,$00
 	
 BOX.1:
-	defb $00,$00,$00,$00,$00,$00,$00,$00
+	DB $00,$00,$00,$00,$00,$00,$00,$00
 
 BOX.2:
-	defb $00,$00,$00,$00,$00,$00,$00,$00
+	DB $00,$00,$00,$00,$00,$00,$00,$00
 
 SLOT.1:		; AF2B
-	defb $61,$00,$00,$00
+	DB $61,$00,$00,$00
 SLOT.2:		; AF2F
-	defb $64,$00,$00,$00
+	DB $64,$00,$00,$00
 SLOT.3:		; AF33
-	defb $67,$00,$00,$00
+	DB $67,$00,$00,$00
 SLOT.4:		; AF37
-	defb $6A,$00,$00,$00
+	DB $6A,$00,$00,$00
 
 X_BUFFER:
-	defb $00	; 0  empty
-	defb $00	; 1  penetrator
-	defb $00	; 2  ultra flash
-	defb $00	; 3  mirage
-	defb $00	; 4  healer
-	defb $01	; 5  jackrabbit
-	defb $01	; 6  lifter
-	defb $03	; 7  blaster
-	defb $02	; 8  backlash
-	defb $06	; 9  lava shot
-	defb $01	; 10 streamer
+	DB $00	; 0  empty
+	DB $00	; 1  penetrator
+	DB $00	; 2  ultra flash
+	DB $00	; 3  mirage
+	DB $00	; 4  healer
+	DB $01	; 5  jackrabbit
+	DB $01	; 6  lifter
+	DB $03	; 7  blaster
+	DB $02	; 8  backlash
+	DB $06	; 9  lava shot
+	DB $01	; 10 streamer
 
 BOX.COLORS:
-	defb COLOR.BLACK	; 0  empty
-	defb COLOR.GREEN	; 1  penetrator
-	defb COLOR.RED      ; 2  ultra flash
-	defb COLOR.MAGENTA  ; 3  mirage
-	defb COLOR.GREEN    ; 4  healer
-	defb COLOR.SKYBLUE  ; 5  jackrabbit
-	defb COLOR.YELLOW   ; 6  lifter
-	defb COLOR.WHITE    ; 7  blaster
-	defb COLOR.WHITE    ; 8  backlash
-	defb COLOR.RED      ; 9  lava shot
-	defb COLOR.MAGENTA  ; 10 streamer
+	DB COLOR.BLACK	; 0  empty
+	DB COLOR.GREEN	; 1  penetrator
+	DB COLOR.RED      ; 2  ultra flash
+	DB COLOR.MAGENTA  ; 3  mirage
+	DB COLOR.GREEN    ; 4  healer
+	DB COLOR.SKYBLUE  ; 5  jackrabbit
+	DB COLOR.YELLOW   ; 6  lifter
+	DB COLOR.WHITE    ; 7  blaster
+	DB COLOR.WHITE    ; 8  backlash
+	DB COLOR.RED      ; 9  lava shot
+	DB COLOR.MAGENTA  ; 10 streamer
 	
 ACTIVE_SLOT: 
-	defb $00,$00
+	DB $00,$00
 
 
 	include "code/AF53-AF81__show_weapon_slot.asm"
 	include "code/AF82-AFF9__message_scroller.asm"
 	include "code/AFFA-B023__slot_blinking.asm"
 	include "code/B024-B088__show_slot_box.asm"
-	include "code/B089-B0FA___UNKNOWN.asm"
+	include "code/B089-B0FA__select_weapon_slot.asm"
 
 
 MESSAGE_ADDRESS:
-	defb $00,$00
+	DB $00,$00
 MESSAGE_LENGTH: 
-	defb $00
-LB0FE:
-	defb $00
+	DB $00
+WEAPON_PANEL_FLAG:
+	DB $00
 
 
 	include "code/B0FF-B11A__set_new_message.asm"
 	include "code/B11B-B20F__collect_box.asm"
-	include "code/B210-B237___UNKNOWN.asm"
-	include "code/B238-B275___UNKNOWN.asm"
-	include "code/B276-B2C4___UNKNOWN.asm"
-	include "code/B2C5-B2F0___UNKNOWN.asm"
+	include "code/B210-B237__consume_ammo.asm"
+	include "code/B238-B275__tick_active_weapon.asm"
+	include "code/B276-B2C4__stamp_boxes.asm"
+	include "code/B2C5-B2F0__restore_boxes.asm"
 
 
-; Routine at B2F1
-LB2F1:
-	call LB2F9
-	call LB33D
+tick_hazards:
+	call check_drowning
+	call spawn_alien_at_rotator
 	ret
 
 
-	include "code/B2F8-B33C___UNKNOWN.asm"
-	include "code/B33D-B3E5___UNKNOWN.asm"
+	include "code/B2F8-B33C__check_drowning.asm"
+	include "code/B33D-B3E5__spawn_alien_at_rotator.asm"
 
 
-LB3E6:
-	defb $00,$00
-LB3E8:
-	defb $00,$00
+PLAYER_CELL_LEAD:
+	DB $00,$00
+PLAYER_CELL_PTR:
+	DB $00,$00
 	
-LB3EA: 
-	defb $00
+BLAST_ARMED: 
+	DB $00
 
-; Routine at B3EB
-LB3EB:
-	ld hl, LF0C0-1		;LF0BF
+; --- update_player: per-frame player update - read keys, set facing/velocity/draw offset, then dispatch the action (@done)
+update_player:
+	ld hl, PLAYFIELD_MAP-1		;LF0BF
 	ld bc, $1800
-LB3EB_0:
+update_player_0:
 	DUP 8
 		ld (hl), c
 		dec l
 	EDUP
-	djnz LB3EB_0
+	djnz update_player_0
 
-; This entry point is used by the routines at LB87F and LB9B1.
-LB3EB_1:
+; This entry point is used by go_fall and player_standing (.walk).
+update_player_1:
 	ld a, (PLAYER_Y_COORD)
 	add a, $30
 	cp $A0
-	jr c, LB3EB_2
+	jr c, update_player_2
 
 	ld a, $FF
-	ld (LB2F8), a
-LB3EB_2:
-	ld ix, LA43F
-	ld a, (LBAA7)
+	ld (DROWNING), a
+update_player_2:
+	ld ix, PLAYER
+	ld a, (INPUT_LOCK)
 	and a
-	jp nz, LB3EB_6
+	jp nz, update_player_6
 
-	ld a, (LA43F)
+	ld a, (PLAYER)
 
 	cp $05
-	jr z, LB3EB_4
+	jr z, update_player_4
 
 	cp $06
-	jr z, LB3EB_4
+	jr z, update_player_4
 
-	ld (ix+$12), $00
+	ld (ix+ALIEN.param2), $00
 	ld a, (KEY_FIRE_CURRENT)
 	bit 1, a
-	jr z, LB3EB_3
+	jr z, update_player_3
 
-	ld (ix+$02), $80
-	ld (ix+$12), $FE
-LB3EB_3:
+	ld (ix+ALIEN.facing), $80
+	ld (ix+ALIEN.param2), $FE
+update_player_3:
 	bit 0, a
-	jr z, LB3EB_4
+	jr z, update_player_4
 
-	ld (ix+$02), $00
-	ld (ix+$12), $02
-LB3EB_4:
-	call LB5FD
+	ld (ix+ALIEN.facing), $00
+	ld (ix+ALIEN.param2), $02
+update_player_4:
+	call find_player_cell
 
-	ld (ix+$13), $00
+	ld (ix+ALIEN.draw_x), $00
 	ld a, (PLAYER_X_COORD)
 
 	cp $41
-	jr nc, LB3EB_5
+	jr nc, update_player_5
 
-	ld (ix+$13), $80
-LB3EB_5:
+	ld (ix+ALIEN.draw_x), $80
+update_player_5:
 	cp $B2
-	jr c, LB3EB_6
+	jr c, update_player_6
 
-	ld (ix+$13), $9D
-LB3EB_6:
-	ld a, (LA43F)
+	ld (ix+ALIEN.draw_x), $9D
+update_player_6:
+	ld a, (PLAYER)
 
 	cp $01
 	jp nz, action_by_accum
 
-	ld iy, LB4C0
-; This entry point is used by the routine at LB99B.
-LB3EB_7:
+	ld iy, player_walk
+; This entry point is used by the routine at player_standing.
+update_player_7:
 	ld a, (KEY_FIRE_CURRENT)
 	bit 2, a
-	jr z, LB3EB_8
+	jr z, update_player_8
 
 pressed_down:
-	ld hl, (LB3E8)
+	ld hl, (PLAYER_CELL_PTR)
 	ld a, (hl)
 
 	cp $14
-	jp z, LB6B3
+	jp z, go_transfer_room
 
 	cp $15
-	jp z, LB6B3
+	jp z, go_transfer_room
 
 	inc hl
 	ld a, (hl)
 
 	cp $14
-	jp z, LB6B3
+	jp z, go_transfer_room
 
 	cp $15
-	jp z, LB6B3
+	jp z, go_transfer_room
 
 	ld a, (LEVEL_NUMBER)
 	and a
-	jr nz, LB3EB_8
+	jr nz, update_player_8
 
 	ld a, (ROOM_NUMBER)
 
 	cp $28
-	jr nz, LB3EB_8
+	jr nz, update_player_8
 
-	ld hl, (LB3E8)
+	ld hl, (PLAYER_CELL_PTR)
 	ld de, $0081
 	add hl, de
 	ld a, (hl)
 
 	cp $1C
-	jr nz, LB3EB_8
+	jr nz, update_player_8
 
 	ld a, (PLAYER_X_COORD)
 	sub $40
@@ -779,126 +804,126 @@ pressed_down:
 	add hl, de
 	ld a, (hl)
 	and a
-	jr z, LB3EB_8
-	jp LB9C5
+	jr z, update_player_8
+	jp start_teleport
 
-LB3EB_8:
+update_player_8:
 	jp (iy)
 
-; Routine at B4C0
-LB4C0:
-	call LB706
+; --- player_walk: ground movement - down=crouch/stairs, up=jump, left/right=walk with wall collision (@done)
+player_walk:
+	call check_ground
 	and a
-	jp z, LB6E8
-	bit 7, (ix+$02)
-	jr nz, LB4C0_0
-	ld hl, (LB3E8)
+	jp z, start_fall
+	bit 7, (ix+ALIEN.facing)
+	jr nz, player_walk_0
+	ld hl, (PLAYER_CELL_PTR)
 	ld de, $0082
 	add hl, de
-	call LB993
-	jr c, LB4C0_2
-	jr LB4C0_1
-LB4C0_0:
-	ld hl, (LB3E8)
+	call is_solid
+	jr c, player_walk_2
+	jr player_walk_1
+player_walk_0:
+	ld hl, (PLAYER_CELL_PTR)
 	ld de, $0081
 	add hl, de
-	call LB993
-	jr c, LB4C0_2
-LB4C0_1:
+	call is_solid
+	jr c, player_walk_2
+player_walk_1:
 	ld de, $0020
 	add hl, de
-	call LB993
-	jr nc, LB4C0_2
-	ld a, (ix+$12)
-	ld (ix+$1B), a
-	ld (ix+$10), $02
+	call is_solid
+	jr nc, player_walk_2
+	ld a, (ix+ALIEN.param2)
+	ld (ix+ALIEN.xvel), a
+	ld (ix+ALIEN.timer), $02
 	ld a, $03
-	ld (ix+$00), a
+	ld (ix+ALIEN.state), a
 	jp action_by_accum
 
-LB4C0_2:
+player_walk_2:
 	ld a, (KEY_FIRE_CURRENT)
 	and $0F
-	jr nz, LB4C0_3
+	jr nz, player_walk_3
 	ld a, $08
-	ld (LA43F), a
+	ld (PLAYER), a
 	jp action_by_accum
 
-LB4C0_3:
+player_walk_3:
 	ld c, a
 	bit 2, c
-	jr z, LB4C0_4
+	jr z, player_walk_4
 	ld a, (PLAYER_Y_COORD)
 	add a, $08
 	ld (PLAYER_Y_COORD), a
 	ld a, $04
-	ld (LA43F), a
+	ld (PLAYER), a
 	jp action_by_accum
 
-LB4C0_4:
+player_walk_4:
 	bit 3, c
-	jr z, LB4C0_7
+	jr z, player_walk_7
 	ld iy, (ACTIVE_SLOT)
-	ld a, (iy+$01)
+	ld a, (iy+SLOT.WEAPON)
 	cp $05
-	jp z, LB8DE
-	bit 7, (ix+$13)
-	jr nz, LB4C0_6
-	ld a, (LB3EA)
+	jp z, start_fly
+	bit 7, (ix+ALIEN.draw_x)
+	jr nz, player_walk_6
+	ld a, (BLAST_ARMED)
 	and a
-	jr nz, LB4C0_5
-	ld hl, (LB3E6)
-	call LB993
+	jr nz, player_walk_5
+	ld hl, (PLAYER_CELL_LEAD)
+	call is_solid
 	ret c
-LB4C0_5:
-	ld hl, (LB3E8)
+player_walk_5:
+	ld hl, (PLAYER_CELL_PTR)
 	ld de, $FFE0		; -32
 	add hl, de
-	call LB993
+	call is_solid
 	ret c
 	inc l
-	call LB993
+	call is_solid
 	ret c
-LB4C0_6:
-	ld (ix+$11), $F7
-	ld a, (ix+$12)
-	ld (ix+$1B), a
+player_walk_6:
+	ld (ix+ALIEN.param1), $F7
+	ld a, (ix+ALIEN.param2)
+	ld (ix+ALIEN.xvel), a
 	ld a, $05
-	ld (LA43F), a
+	ld (PLAYER), a
 	jp action_by_accum
 
-LB4C0_7:
+player_walk_7:
 	bit 1, c
-	jr z, LB4C0_11
-	bit 7, (ix+$13)
-	jr nz, LB4C0_10
-	ld a, (LB3EA)
+	jr z, player_walk_11
+	bit 7, (ix+ALIEN.draw_x)
+	jr nz, player_walk_10
+	ld a, (BLAST_ARMED)
 	and a
-	jr z, LB4C0_8
-	ld hl, (LB3E6)
+	jr z, player_walk_8
+	ld hl, (PLAYER_CELL_LEAD)
 	ld de, $0040
 	add hl, de
-	call LB993
-	jr c, LB4C0_10
+	call is_solid
+	jr c, player_walk_10
 	ld de, $0020
-	jr LB4C0_9
-LB4C0_8:
-	ld hl, (LB3E6)
-	call LB993
+	jr player_walk_9
+player_walk_8:
+	ld hl, (PLAYER_CELL_LEAD)
+	call is_solid
 	ret c
 	ld de, $0020
 	add hl, de
-	call LB993
+	call is_solid
 	ret c
 	add hl, de
-	call LB993
+	call is_solid
 	ret c
-LB4C0_9:
+player_walk_9:
 	add hl, de
-	call LB993
-	jp c, LB647
+	call is_solid
+	jp c, player_recoil
 
-LB4C0_10:
+player_walk_10:
 	ld a, (PLAYER_X_COORD)
 	cp $3B
 	jp c, go_left_room
@@ -908,36 +933,36 @@ LB4C0_10:
 
 	ret
 
-LB4C0_11:
+player_walk_11:
 	bit 0, c
 	ret z
-	bit 7, (ix+$13)
-	jr nz, LB4C0_14
-	ld a, (LB3EA)
+	bit 7, (ix+ALIEN.draw_x)
+	jr nz, player_walk_14
+	ld a, (BLAST_ARMED)
 	and a
-	jr z, LB4C0_12
-	ld hl, (LB3E6)
+	jr z, player_walk_12
+	ld hl, (PLAYER_CELL_LEAD)
 	ld de, $0040
 	add hl, de
-	call LB993
-	jr c, LB4C0_14
+	call is_solid
+	jr c, player_walk_14
 	ld de, $0020
-	jr LB4C0_13
-LB4C0_12:
-	ld hl, (LB3E6)
-	call LB993
+	jr player_walk_13
+player_walk_12:
+	ld hl, (PLAYER_CELL_LEAD)
+	call is_solid
 	ld de, $0020
 	add hl, de
-	call LB993
+	call is_solid
 	ret c
 	add hl, de
-	call LB993
+	call is_solid
 	ret c
 	add hl, de
-LB4C0_13:
-	call LB993
-	jp c, LB647
-LB4C0_14:
+player_walk_13:
+	call is_solid
+	jp c, player_recoil
+player_walk_14:
 	ld a, (PLAYER_X_COORD)
 	cp $B6
 	jp nc, go_right_room
@@ -948,12 +973,11 @@ LB4C0_14:
 	ret
 
 
-	include "code/B5FD-B628___UNKNOWN.asm"
+	include "code/B5FD-B628__find_player_cell.asm"
 
 
-; Routine at B629
-LB629:
-	ld a, (LA452)
+calc_player_map_ptr:
+	ld a, (PLAYER_MAP_X)
 	and $1F
 	ld e, a
 	ld d, $00
@@ -964,69 +988,78 @@ LB629:
 	add hl, hl
 	add hl, hl
 	add hl, de
-	ld de, LF0C0
+	ld de, PLAYFIELD_MAP
 	add hl, de
-	ld (LB3E8), hl
+	ld (PLAYER_CELL_PTR), hl
 	ld de, $0080
 	add hl, de
 	ret
 
-; Routine at B647
-LB647:
-	ld a, (ix+$12)
-	ld (ix+$1B), a
-	ld (ix+$10), $02
+player_recoil:
+	ld a, (ix+ALIEN.param2)
+	ld (ix+ALIEN.xvel), a
+	ld (ix+ALIEN.timer), $02
 	ld a, $02
-	ld (ix+$00), a
+	ld (ix+ALIEN.state), a
 	jp action_by_accum
 
 
 	include "code/B659-B6D7__change_room.asm"
 
 
-; Data block at B6D8
-LB6D8:
-	defb $DD,$2A,$0B,$95,$DD,$7E,$03,$FE
-	defb $FF,$C8,$32,$0A,$95,$C3,$9D,$A8
+; --- dead_exit4 (DEAD) --------------------------------------------
+; @done
+; Vestigial 4th-exit handler (unreferenced -> never runs). Reads
+; the current room's exit record and tests the unused
+; ROOM_EXITS._03 slot, which is always $FF, so it always returns;
+; otherwise it would set that as the level and redraw the room.
+dead_exit4:
+	ld ix, (ROOM_EXITS_ADDR)
+	ld a, (ix+ROOM_EXITS._03)
+	cp $FF
+	ret z
 
-; Routine at B6E8
-LB6E8:
+	ld (LEVEL_NUMBER), a
+	jp draw_room
+
+; --- start_fall: begin falling (or flying if the Jackrabbit weapon is active) (@done)
+start_fall:
 	ld iy, (ACTIVE_SLOT)
-	ld a, (iy+$01)
+	ld a, (iy+SLOT.WEAPON)
 	cp $05
-	jp z, LB8DE
-	ld a, (ix+$12)
-	ld (ix+$1B), a
-; This entry point is used by the routine at LB7B5.
-LB6E8_0:
-	ld (ix+$11), $01
+	jp z, start_fly
+	ld a, (ix+ALIEN.param2)
+	ld (ix+ALIEN.xvel), a
+; entry point used by go_jump.
+start_fall_0:
+	ld (ix+ALIEN.param1), $01
 	ld a, $06
-	ld (LA43F), a
+	ld (PLAYER), a
 	jp action_by_accum ;LB72D
 
-; Routine at B706
-LB706:
+; --- check_ground: test the two cells under the player for solid ground; returns count in a (@done)
+check_ground:
 	push de
 	push bc
-	bit 7, (ix+$13)
-	jr z, LB706_0
-	call LB629
-	jr LB706_1
-LB706_0:
-	ld hl, (LB3E8)
+	bit 7, (ix+ALIEN.draw_x)
+	jr z, check_ground_0
+	call calc_player_map_ptr
+	jr check_ground_1
+check_ground_0:
+	ld hl, (PLAYER_CELL_PTR)
 	ld de, $0081
 	add hl, de
-LB706_1:
+check_ground_1:
 	ld c, $00
-	call LB993
-	jr nc, LB706_2
+	call is_solid
+	jr nc, check_ground_2
 	inc c
-LB706_2:
+check_ground_2:
 	inc l
-	call LB993
-	jr nc, LB706_3
+	call is_solid
+	jr nc, check_ground_3
 	inc c
-LB706_3:
+check_ground_3:
 	ld a, c
 	pop bc
 	pop de
@@ -1040,97 +1073,101 @@ LB706_3:
 	include "code/B841-B8DD__go_fall.asm"
 
 
-LB8DE:
-	ld (ix+$00), $07
-	ld (ix+$11), $04
+; --- start_fly: enter the flying state (Jackrabbit) (@done)
+start_fly:
+	ld (ix+ALIEN.state), $07
+	ld (ix+ALIEN.param1), $04
 	ret
 
 
 	include "code/B8E7-B99A__go_fly.asm"
-	include "code/B99B-B9B7___UNKNOWN.asm"
+	include "code/B99B-B9B7__player_standing.asm"
 
 
-LB9B8:
-	dec (ix+$10)
+; --- player_dying: death state (accum 9) - wait out the timer, flush the screen, lose a life (@done)
+player_dying:
+	dec (ix+ALIEN.timer)
 	ret nz
 	call playfield_to_screen
 	call playfield_to_screen
-	jp LBAA8_1
+	jp lose_life_1
 
 
-LB9C5:
-	ld (ix+$00), $0A
-	ld (ix+$10), $32
+; --- start_teleport: begin the teleport-out dissolve (state $0A, sound 9) (@done)
+start_teleport:
+	ld (ix+ALIEN.state), $0A
+	ld (ix+ALIEN.timer), $32
 	ld a, $01
-	ld (LA2CF), a
+	ld (DISSOLVE), a
 	ld a, $09
-	call L93DC
+	call play_sfx
 	ret
 
 
-	include "code/B9D8-BA20___UNKNOWN.asm"
-	include "code/BA21-BA67___UNKNOWN.asm"
+	include "code/B9D8-BA20__teleport_to_level.asm"
+	include "code/BA21-BA67__give_bonus_weapon.asm"
 
 
 go_appear:
 	ld a, $09
-	call L93DC
+	call play_sfx
 	ld a, $32  ; duration
-	ld (ix+$10), a
+	ld (ix+ALIEN.timer), a
 	ld a, $04
-	ld (LA2CF), a
-	inc (ix+$00)
+	ld (DISSOLVE), a
+	inc (ix+ALIEN.state)
 	ret
 
 
-LBA7B:
-	ld a, (ix+$10)
+; --- finish_appear: materialise state (accum 12) - count the dissolve down, then stand (@done)
+finish_appear:
+	ld a, (ix+ALIEN.timer)
 	and $0F
-	jr nz, LBA7B_0
-	ld hl, LA2CF
+	jr nz, finish_appear_0
+	ld hl, DISSOLVE
 	dec (hl)
-LBA7B_0:
-	dec (ix+$10)
+finish_appear_0:
+	dec (ix+ALIEN.timer)
 	ret nz
-	ld (ix+$00), $08
+	ld (ix+ALIEN.state), $08
 	xor a
-	ld (LA2CF), a
+	ld (DISSOLVE), a
 	ret
 
 
-	include "code/BA93-BAA6___UNKNOWN.asm"
+	include "code/BA93-BAA6__apply_hazard_damage.asm"
 
 
-LBAA7:
-	defs $01
+INPUT_LOCK:
+	DS $01
 
-; Routine at BAA8
-LBAA8:
+; --- lose_life: player death sequence - death sound, freeze, decrement life (@done)
+lose_life:
 	ld a, $08
-	call L93DC
+	call play_sfx
 	ld a, $FF
-	ld (LBAA7), a
+	ld (INPUT_LOCK), a
 	xor a
-	ld (LA2CF), a
+	ld (DISSOLVE), a
 	ld b, $20
-LBAA8_0:
+lose_life_0:
 	push bc
 	ld hl, PLAYER_Y_COORD
 	inc (hl)
-	call LCACD
-	call LA2D0
+	call animate_playfield
+	call draw_all_actors
 	pop bc
-	djnz LBAA8_0
+	djnz lose_life_0
 
 	call playfield_to_screen
 	call playfield_to_screen
 
-; This entry point is used by the routines at LB9B8 and LBDA4.
-LBAA8_1:
-	ld a, (LFFFE)
-	ld (L946C), a
+; This entry point is used by the routines at player_dying and use_weapon.
+lose_life_1:
+	ld a, (IS_128K)
+	ld (RESET_JUMPER_SND), a
 	ld a, $02
-	ld (L9222), a
+	ld (SND_TRIG_1), a
 
 	ld de, $0407
 	ld hl, MISS_TERM
@@ -1144,13 +1181,13 @@ loop_hiscore:
 	ld a, (de)
 	cp (hl)
 	jp c, diagonal_clear
-	jr nz, LBAA8_3
+	jr nz, lose_life_3
 
 	inc hl
 	inc de
 	djnz loop_hiscore
 
-LBAA8_3:
+lose_life_3:
 	ld hl, SCORE_BUFFER
 	ld de, HISCORE
 	ld bc, $0004
@@ -1163,66 +1200,66 @@ MISS_TERM:
 
 
 	include "code/BB13-BB4B__term_print.asm"
-	include "code/BB4C-BB77___UNKNOWN.asm"
-	include "code/BB78-BC95___UNKNOWN.asm"
+	include "code/BB4C-BB77__check_cheat_password.asm"
+	include "code/BB78-BC95__death_explosion.asm"
 
 
-; Routine at BC96
-LBC96:
-	ld a, (LA465)
+; --- bullet_hits_alien: bounding-box test of the player's shot vs this alien; sets ALIEN.hit (@done)
+bullet_hits_alien:
+	ld a, (PLAYER_BULLET)
 	and a
-	jr z, LBC96_0
-	ld a, (ix+$00)
+	jr z, bullet_hits_alien_0
+	ld a, (ix+ALIEN.state)
 	and $BF
-	jr z, LBC96_0
+	jr z, bullet_hits_alien_0
 	cp $03
-	jr z, LBC96_0
-	ld a, (LA468)
+	jr z, bullet_hits_alien_0
+	ld a, (BULLET_X)
 	add a, $06
-	sub (ix+$03)
+	sub (ix+ALIEN.x)
 	ld l, a
-	ld a, (ix+$05)
+	ld a, (ix+ALIEN.width)
 	add a, a
 	add a, a
 	add a, $04
 	cp l
-	jr c, LBC96_0
-	ld a, (LA469)
+	jr c, bullet_hits_alien_0
+	ld a, (BULLET_Y)
 	add a, $0C
-	sub (ix+$04)
+	sub (ix+ALIEN.y)
 	ld l, a
-	ld a, (ix+$06)
+	ld a, (ix+ALIEN.height)
 	add a, a
 	add a, a
 	add a, a
 	add a, $08
 	cp l
-	jr c, LBC96_0
-	ld a, (ix+$00)
+	jr c, bullet_hits_alien_0
+	ld a, (ix+ALIEN.state)
 	cp $0A
-	jr z, LBC96_0
-	ld a, (LA487)
-	ld (ix+$22), a
+	jr z, bullet_hits_alien_0
+	ld a, (BULLET_HIT)
+	ld (ix+ALIEN.hit), a
 	and a
 	ret
-LBC96_0:
+bullet_hits_alien_0:
 	or $FF
 	ret
 
-; Routine at BCE0
-LBCE0:
-	ld a, (LBAA7)
+; --- fire_weapon: on a fresh fire press, consume ammo and launch the player's bullet (PLAYER_BULLET) (@done)
+fire_weapon:
+	ld a, (INPUT_LOCK)
 	and a
 	ret nz
-	ld a, (LA43F)
+	ld a, (PLAYER)
 	cp $0A
-	jp z, LBDA4_1
+	jp z, weapon_release
 	ld ix, (ACTIVE_SLOT)
-	ld a, (ix+$01)
+	ld a, (ix+SLOT.WEAPON)
 	and a
 	ret z
 	cp $05
-	jp c, LBDA4
+	jp c, use_weapon
 
 	ld a, (KEY_FIRE_CURRENT)
 	bit 4, a
@@ -1232,125 +1269,127 @@ LBCE0:
 	bit 4, a
 	ret nz
 
-	ld a, (LA465)
+	ld a, (PLAYER_BULLET)
 	and a
 	ret nz
 	ld c, $01
-	ld a, (ix+$01)
+	ld a, (ix+SLOT.WEAPON)
 	cp $06
-	jr nz, LBCE0_0
+	jr nz, fire_weapon_0
 	ld c, $08
-LBCE0_0:
+fire_weapon_0:
 	ld a, c
-	call LB210
-	jr nc, LBCE0_1
+	call consume_ammo
+	jr nc, fire_weapon_1
 	ret
-LBCE0_1:
-	ld a, (ix+$01)
+fire_weapon_1:
+	ld a, (ix+SLOT.WEAPON)
 	sub $05
-	call L93DC
-	ld iy, LA465
+	call play_sfx
+	ld iy, PLAYER_BULLET
 	ld a, (PLAYER_Y_COORD)
 	add a, $05
-	ld (LA469), a
+	ld (BULLET_Y), a
 	ld a, (PLAYER_FACING)
 	add a, a
 	ld a, (PLAYER_X_COORD)
-	jr c, LBCE0_2
+	jr c, fire_weapon_2
 	ld e, $06
-	ld (iy+$02), $00
+	ld (iy+ALIEN.facing), $00
 	add a, $04
-	jr LBCE0_3
-LBCE0_2:
+	jr fire_weapon_3
+fire_weapon_2:
 	ld e, $FA
-	ld (iy+$02), $FF
-LBCE0_3:
+	ld (iy+ALIEN.facing), $FF
+fire_weapon_3:
 	add a, $02
-	ld (LA468), a
-	ld (iy+$1B), e
-	ld (iy+$00), $01
-	ld a, (ix+$01)
+	ld (BULLET_X), a
+	ld (iy+ALIEN.xvel), e
+	ld (iy+ALIEN.state), $01
+	ld a, (ix+SLOT.WEAPON)
 	sub $05
-	ld (iy+$18), a
-	ld (iy+$16), $E0
-	ld (iy+$17), $D6
-	ld a, (ix+$03)
-	ld (iy+$21), a
-	ld a, (ix+$01)
+	ld (iy+ALIEN.anim), a
+	ld (iy+ALIEN.base_lo), $E0
+	ld (iy+ALIEN.base_hi), $D6
+	ld a, (ix+SLOT.POWER)
+	ld (iy+ALIEN.hp), a
+	ld a, (ix+SLOT.WEAPON)
 	cp $06
-	jr z, LBCE0_4
+	jr z, fire_weapon_4
 	xor a
-	ld (iy+$22), a
+	ld (iy+ALIEN.hit), a
 	ret
-LBCE0_4:
+fire_weapon_4:
 	or $FF
-	ld (iy+$22), a
+	ld (iy+ALIEN.hit), a
 	ret
 
-; Routine at BD7F
-LBD7F:
+; --- reset_bullet: deactivate the player's bullet (PLAYER_BULLET state = 0) (@done)
+reset_bullet:
 	xor a
-	ld (LA465), a
+	ld (PLAYER_BULLET), a
 	ret
 
-; Routine at BD84
-LBD84:
-	ld ix, LA465
-	ld a, (ix+$03)
-	add a, (ix+$1B)
-	ld (ix+$03), a
+; --- move_bullet: advance the player's bullet by its xvel; expire off-screen or on a wall (@done)
+move_bullet:
+	ld ix, PLAYER_BULLET
+	ld a, (ix+ALIEN.x)
+	add a, (ix+ALIEN.xvel)
+	ld (ix+ALIEN.x), a
 	cp $38
-	jr c, LBD84_0
+	jr c, move_bullet_0
 	cp $C4
-	jr nc, LBD84_0
-	call LC401
-	jr c, LBD84_0
+	jr nc, move_bullet_0
+	call alien_hits_wall
+	jr c, move_bullet_0
 	ret
-LBD84_0:
-	ld (ix+$00), $00
+move_bullet_0:
+	ld (ix+ALIEN.state), $00
 	ret
 
 
-	include "code/BDA4-BE0C___UNKNOWN.asm"
+	include "code/BDA4-BE0C__use_weapon.asm"
 
 
-LBE0D:
-	defs $01
+WEAPON_AUTOFIRE:
+	DS $01
 
 
-LBE0E:
-	ld a, (LB3EA)
+; --- fire_penetrator: Penetrator weapon fire - start the beam dissolve + sound (@done)
+fire_penetrator:
+	ld a, (BLAST_ARMED)
 	and a
-	jr nz, LBE0E_0
+	jr nz, fire_penetrator_0
 
 	ld a, $FF
-	ld (LB3EA), a
+	ld (BLAST_ARMED), a
 	ld a, $07
-	call L93DC
-LBE0E_0:
+	call play_sfx
+fire_penetrator_0:
 	ld a, $02
-	ld (LA2CF), a
-	ld hl, LBE0D
-	ld a, (LCC5C)
+	ld (DISSOLVE), a
+	ld hl, WEAPON_AUTOFIRE
+	ld a, (FRAME_PARITY)
 	and $01
 	add a, (hl)
 	ld (hl), $00
-	call LB210
-	ld a, (ix+$01)
+	call consume_ammo
+	ld a, (ix+SLOT.WEAPON)
 	and a
 	ret nz
-	jp LBDA4_1
+	jp weapon_release
 
 
-LBE39:
+; fire_ultraflash (weapon 2) / fire_weapon3 (weapon 3): no projectile - just return.
+fire_ultraflash:
 	ret
     
 
-LBE3A:
+fire_weapon3:
 	ret
 
 
-	include "data/alien_templates_BE3B-BF2A.asm"
+	include "data/BE3B-BF2A__alien_templates.asm"
 
 	include "code/BF2B-BFD1__choose_alien_routine.asm"
 	include "code/BFD2-C04A__do_rockets.asm"
@@ -1359,10 +1398,12 @@ LBE3A:
 	include "code/C0A6-C0D5__do_mushrooms.asm"
 
 
-LC0D6:
-	defb $00
-LC0D7: 
-	defb $00,$00
+; set while a special alien (harrier) holds slot 1: suppresses normal spawns and keeps
+; ALIEN.1 across rooms. Reset per level. (was LC0D6)
+BOSS_ACTIVE:
+	DB $00
+HARRIER_SWEEP: 
+	DB $00,$00
 	
 
 	include "code/C0D9-C0F7__do_harrier.asm"
@@ -1373,10 +1414,10 @@ LC0D7:
 
 kill_all_aliens:
 	ld iy, ALIEN.1
-	ld de, $0026
+	ld de, ALIEN_LEN
 	ld b, $06
 loop_kill_aliens:
-	ld (iy+$1F), $FF
+	ld (iy+ALIEN.spawn), $FF
 	add iy, de
 	djnz loop_kill_aliens
 
@@ -1384,32 +1425,45 @@ loop_kill_aliens:
 
 	include "code/C19E-C1F0__do_mortar.asm"
 
-	db $00
-	db $00
+	DB $00
+	DB $00
 
 	include "code/C1F3-C26D__do_snake.asm"
 
-LC26E:
-	db $A7
+; THEME_PARAM: the active theme's cannon parameter. swap_spritesheet latches it from
+; SPRITESET_PARAM[SPRITESET] (the 4-entry table $A7,$64,$56,$3F) on every theme change.
+; move_cannon uses it both as the tile it stamps into the cannon's map column and as that
+; column's scan length - so each theme's cannon has a different tile/reach. ($A7 = theme 0.)
+THEME_PARAM:
+	DB $A7
 
 
 
-LC26F:
-	ld (ix+$10), $04
-	ld (ix+$00), $03
+; --- start_vanish --------------------------------------------
+; @done
+; Turn this alien into its disappearing animation: enter state_vanish
+; with a short timer, load the given "disappear" template, play a pop.
+; In: ix = alien, hl = disappear template
+start_vanish:
+	ld (ix+ALIEN.timer), $04
+	ld (ix+ALIEN.state), $03
 	call copy_alien_template
 	call generate_random
 	and $03
 	add a, $0B
-	jp L93DC
+	jp play_sfx
 
 
 	include "code/C284-C2C0__hit_alien.asm"
 
 
-LC2C1:
-	ld d, (ix+$15)
-	ld e, (ix+$14)
+; --- award_alien_score ---------------------------------------
+; @done
+; Add this alien's score value (score_hi:score_lo) to the player
+; score. In: ix = alien
+award_alien_score:
+	ld d, (ix+ALIEN.score_hi)
+	ld e, (ix+ALIEN.score_lo)
 
 	jp increase_score
 
@@ -1417,43 +1471,48 @@ LC2C1:
 	include "code/C2CA-C2D8__decrease_energy.asm"
 
 
-LC2D9:
-	ld a, (LB3EA)
+; --- alien_hits_player ---------------------------------------
+; @done
+; Bounding-box overlap test between the player and this alien
+; (its box is width*4 x height*8 px from x,y).
+; In: ix = alien. Out: zf set = touching player
+alien_hits_player:
+	ld a, (BLAST_ARMED)
 	and a
-	jr nz, LC2D9_3
-	ld a, (ix+$06)
+	jr nz, .no_hit
+	ld a, (ix+ALIEN.height)
 	add a, a
 	add a, a
 	add a, a
 	ld d, a
-	ld a, (ix+$05)
+	ld a, (ix+ALIEN.width)
 	add a, a
 	add a, a
 	ld e, a
 	ld a, (PLAYER_X_COORD)
-	sub (ix+$03)
-	jr nc, LC2D9_0
+	sub (ix+ALIEN.x)
+	jr nc, .chk_right
 	cp $F6
-	jr c, LC2D9_3
-	jr LC2D9_1
-LC2D9_0:
+	jr c, .no_hit
+	jr .chk_y
+.chk_right:
 	add a, $04
 	cp e
-	jr nc, LC2D9_3
-LC2D9_1:
+	jr nc, .no_hit
+.chk_y:
 	ld a, (PLAYER_Y_COORD)
-	sub (ix+$04)
-	jr nc, LC2D9_2
+	sub (ix+ALIEN.y)
+	jr nc, .chk_bottom
 	cp $E4
-	jr c, LC2D9_3
+	jr c, .no_hit
 	xor a
 	ret
-LC2D9_2:
+.chk_bottom:
 	cp d
-	jr nc, LC2D9_3
+	jr nc, .no_hit
 	xor a
 	ret
-LC2D9_3:
+.no_hit:
 	or $FF
 	ret
 
@@ -1461,38 +1520,46 @@ LC2D9_3:
 	include "code/C315-C361__alien_vectors.asm"
 
 
-LC362:
-	ld a, (ix+$04)
-	add a, (ix+$1C)
-	ld (ix+$04), a
-; This entry point is used by the routine at LC5D9.
-LC362_0:
-	ld a, (ix+$03)
-	add a, (ix+$1B)
-	ld (ix+$03), a
+; --- move_alien ----------------------------------------------
+; @done
+; Advance the alien by its velocity: y += yvel, then x += xvel.
+; move_alien_x is the x-only entry point. In: ix = alien
+move_alien:
+	ld a, (ix+ALIEN.y)
+	add a, (ix+ALIEN.yvel)
+	ld (ix+ALIEN.y), a
+; This entry point is used by the routine at move_mushroom.
+move_alien_x:
+	ld a, (ix+ALIEN.x)
+	add a, (ix+ALIEN.xvel)
+	ld (ix+ALIEN.x), a
 	ret
 
 
-	include "code/C375-C3A5___UNKNOWN_proc_1.asm"
-	include "code/C3A6-C3F0___UNKNOWN_proc_2.asm"
-	include "code/C3F1-C400___UNKNOWN_proc_3.asm"
+	include "code/C375-C3A5__move_sphere.asm"
+	include "code/C3A6-C3F0__move_rocket.asm"
+	include "code/C3F1-C400__state_vanish.asm"
 
 
-; Routine at C401
-LC401:
-	ld a, (ix+$1D)
+; --- alien_hits_wall -----------------------------------------
+; @done
+; Test this alien's cell footprint against solid background tiles
+; (via is_solid). Honours the noclip flag. In: ix = alien
+; Out: cf set = blocked by background
+alien_hits_wall:
+	ld a, (ix+ALIEN.noclip)
 	and a
 	ret nz
-	ld a, (ix+$04)
+	ld a, (ix+ALIEN.y)
 	and $80
 	ret nz
 	ld h, a
-	ld a, (ix+$04)
+	ld a, (ix+ALIEN.y)
 	and $F8
 	ld l, a
 	add hl, hl
 	add hl, hl
-	ld a, (ix+$03)
+	ld a, (ix+ALIEN.x)
 	sub $40
 	and a
 	ret M
@@ -1501,144 +1568,152 @@ LC401:
 	ld e, a
 	ld d, $00
 	add hl, de
-	ld de, LF0C0
+	ld de, PLAYFIELD_MAP
 	add hl, de
-	call LB993
+	call is_solid
 	ret c
 	ld e, l
 	ld a, l
 	and $1F
-	add a, (ix+$05)
+	add a, (ix+ALIEN.width)
 	cp $20
 	ret nc
 	ld a, l
-	add a, (ix+$05)
+	add a, (ix+ALIEN.width)
 	dec a
 	ld l, a
-	call LB993
+	call is_solid
 	ret c
 	ld l, e
 	ld de, $0020
-	ld b, (ix+$06)
-LC401_0:
+	ld b, (ix+ALIEN.height)
+.down_loop:
 	add hl, de
-	djnz LC401_0
-	call LB993
+	djnz .down_loop
+	call is_solid
 	ret c
 	ld a, l
-	add a, (ix+$05)
+	add a, (ix+ALIEN.width)
 	dec a
 	ld l, a
-	jp LB993
+	jp is_solid
 
 
-	include "code/C457-C520___UNKNOWN.asm"
-	include "code/C521-C561___UNKNOWN_proc_5.asm"
-	include "code/C562-C5D8___UNKNOWN_proc_6.asm"
-	include "code/C5D9-C64D___UNKNOWN_proc_7.asm"
-	include "code/C64E-C6B6___UNKNOWN_proc_8.asm"
+	include "code/C457-C520__move_cannon.asm"
+	include "code/C521-C561__move_cannonball.asm"
+	include "code/C562-C5D8__move_jumper.asm"
+	include "code/C5D9-C64D__move_mushroom.asm"
+	include "code/C64E-C6B6__move_harrier.asm"
 	include "code/C6B7-C6B7__just_a_ret.asm"
 
 
-LC6B8:
-	call LC2C1
-	ld a, (ix+$00)
-	ld (ix+$00), $0A
-	ld (ix+$1B), $00
+; --- alien_killed --------------------------------------------
+; @done
+; The player's weapon hit this alien: award its score and switch
+; it to state_rise ($0A) to fly up and vanish. Cannonballs (state 5)
+; get param1=$40. In: ix = alien
+alien_killed:
+	call award_alien_score
+	ld a, (ix+ALIEN.state)
+	ld (ix+ALIEN.state), $0A
+	ld (ix+ALIEN.xvel), $00
 	cp $05
-	jr z, LC6CF
-	ld (ix+$11), $00
+	jr z, .set_param1
+	ld (ix+ALIEN.param1), $00
 	ret
 
 
-LC6CF:
-	ld (ix+$11), $40
+.set_param1:
+	ld (ix+ALIEN.param1), $40
 	ret
 
 
-	include "code/C6D4-C6F1___UNKNOWN_proc_10.asm"
-	include "code/C6F2-C73E___UNKNOWN_proc_11.asm"
-	include "code/C73F-C788___UNKNOWN_proc_12.asm"
+	include "code/C6D4-C6F1__state_rise.asm"
+	include "code/C6F2-C73E__move_bomber_bomb.asm"
+	include "code/C73F-C788__move_volcano.asm"
 
-	db $C9
+	ret	; unreachable padding byte
 
-	include "code/C78A-C7F3___UNKNOWN_proc_13.asm"
+	include "code/C78A-C7F3__state_bomb.asm"
 	include "code/C7F4-C81A__move_bomb.asm"
-	include "code/C81B-C85F___UNKNOWN.asm"
-	include "code/C860-C89A___UNKNOWN_proc_15.asm"
-	include "code/C89B-C921___UNKNOWN_proc_16.asm"
-	include "code/C922-C97F___UNKNOWN_proc_17.asm"
-	include "code/C980-C9B7___UNKNOWN_proc_18.asm"
-	include "code/C9B8-C9E9___UNKNOWN_proc_19.asm"
+	include "code/C81B-C85F__move_mortar.asm"
+	include "code/C860-C89A__move_mortar_shell.asm"
+	include "code/C89B-C921__move_bomber.asm"
+	include "code/C922-C97F__state_explosion.asm"
+	include "code/C980-C9B7__move_snake_head.asm"
+	include "code/C9B8-C9E9__move_snake_body.asm"
 
 
-; Routine at C9EA
-LC9EA:
+; --- toggle_anim_tiles: cycle the animated-tile bytes (water/lava) via the ANIM_TILE_SEQ sequence (@done)
+toggle_anim_tiles:
 	ld hl, SPRITE_E710
-	ld a, (LA194)
+	ld a, (SPRITESET)
 	cp $03
-	jr nz, LC9EA_0
+	jr nz, .have_bank
 	ld hl, SPRITE_E728
-LC9EA_0:
-	ld de, LCA35
+.have_bank:
+	ld de, ANIM_TILE_SEQ
 	ld b, $00
 	ld a, $08
-LC9EA_1:
-	ld (LCA29+1), a		; set SMC
+.step:
+	ld (.count+1), a		; set SMC
 	push hl
 	ld a, (de)
 	bit 7, a
-	jr nz, LC9EA_3
+	jr nz, .step_off
 	and $07
 	dec a
 	ld c, a
 	add hl, bc
 	ld (hl), $FF
 	and a
-	jr z, LC9EA_2
+	jr z, .on
 	ld (de), a
-	jr LC9EA_5
-LC9EA_2:
+	jr .next
+.on:
 	ld a, $80
 	ld (de), a
-	jr LC9EA_5
-LC9EA_3:
+	jr .next
+.step_off:
 	and $07
 	ld c, a
 	add hl, bc
 	ld (hl), $00
 	inc a
 	cp $07
-	jr z, LC9EA_4
+	jr z, .off
 	or $80
 	ld (de), a
-	jr LC9EA_5
-LC9EA_4:
+	jr .next
+.off:
 	ld (de), a
-LC9EA_5:
+.next:
 	pop hl
 	ld c, $08
 	add hl, bc
 	inc de
-LCA29:
+.count:
 	ld a, $00		; !!! SMC
 	dec a
-	jr nz, LC9EA_1
+	jr nz, .step
 	ret
 
 
-LCA35:
-	defb $80,$81,$82,$83,$84,$85,$86,$07
+ANIM_TILE_SEQ:
+	DB $80,$81,$82,$83,$84,$85,$86,$07
 
 
 	include "code/CA3D-CAAC__move_bridge.asm"
 
 
-; Routine at CAAD
-LCAAD:
-	ld hl, LAAA1
+; --- mark_special_tiles --------------------------------------
+; @done
+; Write $01 into every playfield cell listed in SPECIAL_TILE_LIST
+; (built by list_special_tiles), flagging this theme's special tiles.
+mark_special_tiles:
+	ld hl, SPECIAL_TILE_LIST
 	ld a, $01
-LCAAD_0:
+.loop:
 	ld e, (hl)
 	inc hl
 	ld d, (hl)
@@ -1648,25 +1723,29 @@ LCAAD_0:
 
 	ld (de), a
 
-	jp LCAAD_0
+	jp .loop
 
 
-LCABD:
-	defb $00
-LCABE:
-	defb $00
-LCABF:
-	defb $00
-LCAC0:
-	defb $00,$01,$02,$03,$02,$01,$00
-LCAC7:
-	defb $00,$01,$02,$03,$02,$01
+; playfield tile-animation frame counters, advanced by animate_playfield each frame:
+; TILE_ANIM1 = 0-7 (water/E400 frames), TILE_ANIM2 = 5..0 down (E630 frames), TILE_ANIM3 =
+; 0-11. ANIM_BOUNCE7/6 = triangle-wave (0,1,2,3,2,1,0) frame LUTs. ANIM_TOGGLE = anim state.
+TILE_ANIM1:
+	DB $00
+TILE_ANIM2:
+	DB $00
+TILE_ANIM3:
+	DB $00
+ANIM_BOUNCE7:
+	DB $00,$01,$02,$03,$02,$01,$00
+ANIM_BOUNCE6:
+	DB $00,$01,$02,$03,$02,$01
 
 
-LCACD:
-	call LCAAD
+; --- animate_playfield: per-frame playfield animation - special tiles, bridge, water/lava frame counters (@done)
+animate_playfield:
+	call mark_special_tiles
 	call move_bridge
-	ld hl, LCABD
+	ld hl, TILE_ANIM1
 	ld a, (hl)
 	inc a
 	and $07
@@ -1674,22 +1753,22 @@ LCACD:
 	inc hl
 	ld a, (hl)
 	dec a
-	jp p, LCACD_0
+	jp p, .clamp0
 	ld a, $05
-LCACD_0:
+.clamp0:
 	ld (hl), a
 	inc hl
 	ld a, (hl)
 	inc a
 	cp $0C
-	jr nz, LCACD_1
+	jr nz, .clamp1
 	xor a
-LCACD_1:
+.clamp1:
 	ld (hl), a
-	ld a, (LA194)
+	ld a, (SPRITESET)
 	and a
-	jr nz, LCB42
-	ld a, (LCABD)
+	jr nz, animate_water_lava
+	ld a, (TILE_ANIM1)
 	rrca
 	rrca
 	rrca
@@ -1700,7 +1779,7 @@ LCACD_1:
 	ld de, SPRITE_E300
 	ld bc, $0020
 	ldir
-	ld a, (LCABE)
+	ld a, (TILE_ANIM2)
 	rrca
 	rrca
 	rrca
@@ -1708,17 +1787,17 @@ LCACD_1:
 	ld d, $00
 	ld hl, SPRITE_E210
 	add hl, de
-	ld de, LE758
+	ld de, SPRITE_E758
 	ld bc, $0020
 	ldir
-	ld a, (LCABD)
+	ld a, (TILE_ANIM1)
 	add a, a
 	add a, a
 	add a, a
 	add a, a
 	ld e, a
 	ld d, $00
-	ld hl, LE460
+	ld hl, SPRITE_E460
 	add hl, de
 	ld de, SPRITE_E4E0
 	push hl
@@ -1731,17 +1810,17 @@ LCACD_1:
 	inc d
 	ld bc, $0010
 	ldir
-	jp LC9EA
+	jp toggle_anim_tiles
 
 ; Unused
-LCB41:
-	defs $01
+ANIM_TOGGLE:
+	DS $01
 
-; Routine at CB42
-LCB42:
+; --- animate_water_lava: copy the current animation frame for the water/lava sprites (SPRITE_E400/E630) (@done)
+animate_water_lava:
 	cp $01
-	jp nz, LCB42_1
-	ld a, (LCABD)
+	jp nz, .other
+	ld a, (TILE_ANIM1)
 	rrca
 	rrca
 	rrca
@@ -1757,7 +1836,7 @@ LCB42:
 	inc d
 	ld bc, $0010
 	ldir
-	ld a, (LCABE)
+	ld a, (TILE_ANIM2)
 	rrca
 	rrca
 	rrca
@@ -1774,22 +1853,22 @@ LCB42:
 	inc d
 	ld bc, $0010
 	ldir
-	ld a, (LCB41)
+	ld a, (ANIM_TOGGLE)
 	and a
-	jr nz, LCB42_0
-	ld a, (LCABE)
+	jr nz, .swap
+	ld a, (TILE_ANIM2)
 	cp $05
-	jp nz, LC9EA
+	jp nz, toggle_anim_tiles
 	call generate_random
 	and $07
-	jp nz, LC9EA
+	jp nz, toggle_anim_tiles
 
-LCB42_0:
-	ld a, (LCABE)
-	ld (LCB41), a
+.swap:
+	ld a, (TILE_ANIM2)
+	ld (ANIM_TOGGLE), a
 	ld l, a
 	ld h, $00
-	ld de, LCAC0
+	ld de, ANIM_BOUNCE7
 	add hl, de
 	ld a, (hl)
 	add a, a
@@ -1803,15 +1882,15 @@ LCB42_0:
 	ld de, SPRITE_E508
 	ld bc, $0010
 	ldir
-	jp LC9EA
-LCB42_1:
+	jp toggle_anim_tiles
+.other:
 	cp $02
-	jr nz, LCB42_2
+	jr nz, .third
 
-	ld a, (LCABE)
+	ld a, (TILE_ANIM2)
 	ld l, a
 	ld h, $00
-	ld de, LCAC7
+	ld de, ANIM_BOUNCE6
 	add hl, de
 	ld a, (hl)
 	add a, a
@@ -1824,10 +1903,10 @@ LCB42_1:
 	ld de, SPRITE_E360
 	ld bc, $0008
 	ldir
-	jp LC9EA
+	jp toggle_anim_tiles
 
-LCB42_2:
-	ld a, (LCABF)
+.third:
+	ld a, (TILE_ANIM3)
 	;mult
 	ld l, a
 	ld h, $00
@@ -1839,30 +1918,30 @@ LCB42_2:
 	ld de, spriteset_1
 	add hl, de
 	;mult HL=spriteset_1 + A*32
-	ld de, LE700
+	ld de, SPRITE_E700
 	ld bc, $0020
 	ldir
-	jp LC9EA
+	jp toggle_anim_tiles
 
 
 
 diagonal_clear:
 	ld sp,STACK
 	ei
-	call L9723		; main menu loop
+	call setup_main_menu		; main menu loop
 	call new_game	; draw room
 
-LCBF9_0:
+.loop:
 	call is_fire_pressed	 	; ? inkey
-	call LB3EB		; show player
-	call LBD84	 	; process fire
-	call LB2F1		; ? drowning
+	call update_player		; show player
+	call move_bullet	 	; process fire
+	call tick_hazards		; ? drowning
 	call hit_alien
-	call LBCE0		; ? use weapon
-	call LB089		; ? switch weapon
+	call fire_weapon		; ? use weapon
+	call select_weapon_slot		; ? switch weapon
 	call print_score
 
-	ld a, (LB2F8)
+	ld a, (DROWNING)
 
 	IFNDEF WATERPROOF
 		and a
@@ -1870,84 +1949,85 @@ LCBF9_0:
 		xor a
 	ENDIF
 
-	jp nz, LBAA8
+	jp nz, lose_life
 
 	ld a, (ENERGY)
 	and a
-	jr nz, LCBF9_1
+	jr nz, .refresh
 
-	ld a, (LA43F)
+	ld a, (PLAYER)
 
 	cp $09
-	jr z, LCBF9_1
+	jr z, .refresh
 
 	ld a, $09
-	ld (LA43F), a
+	ld (PLAYER), a
 	ld a, $32
-	ld (LA44F), a
+	ld (PLAYER_FRAME_COUNT), a
 	ld a, $01
-	ld (LA2CF), a
-	ld (LBAA7), a
-LCBF9_1:
+	ld (DISSOLVE), a
+	ld (INPUT_LOCK), a
+.refresh:
 	call draw_energy
 	call show_weapon_slot
-	call LCACD
-	call LA2D0			; draw energy and loot
+	call animate_playfield
+	call draw_all_actors			; draw energy and loot
 	ld hl, SLOT.BLINK
 	inc (hl)
-	ld hl, LCC5C
+	ld hl, FRAME_PARITY
 	ld a, (hl)
 	add a, $01
 	daa
 	ld (hl), a
-	jp LCBF9_0
+	jp .loop
 
 
-	include "data/data_CC5C-CD5F.asm"
-	include "data/sprites_CD60-CDDF__player_01.asm"
-	include "data/sprites_CDE0-CE5F__player_02.asm"
-	include "data/sprites_CE60-CEDF__player_03.asm"
-	include "data/sprites_CEE0-CF5F__player_04.asm"
-	include "data/sprites_CF60-CFDF__player_05.asm"
-	include "data/sprites_CFE0-D05F__player_06.asm"
-	include "data/sprites_D060-D0DF__player_07.asm"
-	include "data/sprites_D0E0-D15F__player_08.asm"
-	include "data/sprites_D160-D1DF__player_09.asm"
-	include "data/sprites_D1E0-D25F__player_10.asm"
-	include "data/sprites_D260-D39F.asm"
-	include "data/font_big__D3A0-D43F.asm"
-	include "data/sprites_D440-D57F.asm"
-	include "data/sprites_D580-D6DF__weapons.asm"
-	include "data/sprites_D6E0-D79F__bullets.asm"
-	include "data/sprites_D7A0-D97F.asm"
-	include "data/data_D980-DBBF.asm"
-	include "data/sprites_DBC0-E7FF.asm"
-	include "data/data_E800-EDFF.asm"
-	include "data/colors_player_EE00-EEFF.asm"
-	include "data/colors_backgr_EF00-EFFF.asm" 
+	include "data/CC5C-CD5F__menu_icons.asm"
+	include "data/CD60-CDDF__sprites_player_01.asm"
+	include "data/CDE0-CE5F__sprites_player_02.asm"
+	include "data/CE60-CEDF__sprites_player_03.asm"
+	include "data/CEE0-CF5F__sprites_player_04.asm"
+	include "data/CF60-CFDF__sprites_player_05.asm"
+	include "data/CFE0-D05F__sprites_player_06.asm"
+	include "data/D060-D0DF__sprites_player_07.asm"
+	include "data/D0E0-D15F__sprites_player_08.asm"
+	include "data/D160-D1DF__sprites_player_09.asm"
+	include "data/D1E0-D25F__sprites_player_10.asm"
+	include "data/D260-D39F__sprites.asm"
+	include "data/D3A0-D43F__font_big.asm"
+	include "data/D440-D57F__sprites.asm"
+	include "data/D580-D6DF__sprites_weapons.asm"
+	include "data/D6E0-D79F__sprites_bullets.asm"
+	include "data/D7A0-D97F__sprites.asm"
+	include "data/D980-DBBF__sprites.asm"
+	include "data/DBC0-E7FF__sprites.asm"
+	include "data/E800-EDFF__particles.asm"
+	include "data/EE00-EEFF__colors_player.asm"
+	include "data/EF00-EFFF__colors_backgr.asm" 
 
-	include "data/data_F000-F5FF.asm"
-	include "data/data_F600-F7FF.asm"
-	include "data/data_F800-FCFF.asm"
-	include "data/data_FD00-FDFF.asm"
+	include "data/F000-F5FF__work_buffers.asm"
+	include "data/F600-F7FF__multicolor_luts.asm"
+	include "data/F800-FCFF__color_luts.asm"
+	include "data/FD00-FDFF__attr_color_lut.asm"
 
 
 INT_VECTORS:	; must be aligned
-	defs $100, 0
+	DS $100, 0
 
-	include "data/data_FF00-FFF3.asm"
+	include "data/FF00-FFF3__boot_loader.asm"
 
 to_interrupt:
 	jp interrupt
 
-	defb $5A,$A5,$80,$E2,$88,$E2,$3C
+	DB $5A,$A5,$80,$E2,$88,$E2,$3C
 	
-LFFFE:
-	defb $FF
+; IS_128K: machine flag set by the loader (0 = 48K, $FF = 128K)
+IS_128K:
+	DB $FF
 
 
 last_jump:
-	defb $18	; jr to_interrupt
+	DB $18	; jr to_interrupt
 
 	savebin "recompile/mask_3_loaded.bin",STARTBLOCK,$FFFF-STARTBLOCK+1		; md5 check: 19bc11db626363a574876062784c5294
 	savesna "recompile/mask_3_loaded.sna",startup							; md5 check: 0c6b5a5f7109c6b0f5bf446cbb51affd

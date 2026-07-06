@@ -1,3 +1,6 @@
+; --- draw_energy -----------------------------------------------
+; @done
+; Draw the energy bar in the HUD panel from the ENERGY value.
 draw_energy:
 	ld a, (ENERGY)
 	srl a
@@ -19,14 +22,14 @@ draw_energy:
 	ld c, $FF
 
 loop_draw_energy:
-	call LAEE5
+	call draw_energy_bar
 
 	djnz loop_draw_energy
 
 draw_energy_1:
 	ld a, e
 	and $07
-	ld de, LAF04
+	ld de, ENERGY_BAR_DATA
 	add a, e
 	ld e, a
 	jp nc, draw_energy_2
@@ -37,7 +40,7 @@ draw_energy_2:
 	ld a, (de)
 	ld c, a
 
-	call LAEE5
+	call draw_energy_bar
 
 	ld c, $00
 
@@ -47,16 +50,16 @@ draw_energy_3:
 	cp $75
 	ret z
 
-	call LAEE5
+	call draw_energy_bar
 
 	jr draw_energy_3
 
 
-LAEE5:
+draw_energy_bar:
 	push hl
 	push bc
 	ld b, $03
-LAEE5_0:
+.bar_loop:
 	ld a, h
 
 	DUP 7
@@ -69,7 +72,7 @@ LAEE5_0:
 	ld a, l
 	add a, $20
 	ld l, a
-	djnz LAEE5_0
+	djnz .bar_loop
 
 	pop bc
 	pop hl
@@ -77,6 +80,6 @@ LAEE5_0:
 
 	ret
 
-LAF04:
+ENERGY_BAR_DATA:
 	;defb $00,$80,$C0,$E0,$F0,$F8,$FC,$FE
-	defb 0, -128, -64, -32, -16, -8, -4, -2
+	DB 0, -128, -64, -32, -16, -8, -4, -2

@@ -1,3 +1,5 @@
+; --- term_print ------------------------------------------------
+; @done
 ; terminal print, string is terminated by 7th bit set
 ; in: HL = string address
 ;   D = row, E = column

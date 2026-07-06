@@ -1,9 +1,13 @@
+; --- enter_new_key ---------------------------------------------
+; @done
+; Prompt for and wait for a single keypress to assign to a control.
+; In: hl = prompt string
 enter_new_key:
 	call print_string
 
 	push hl
 loop_press_key:
-	call LA0E5
+	call wait_keypress
 
 	ex af, af'
 	ld hl, KEY_FIRE

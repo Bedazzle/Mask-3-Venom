@@ -1,127 +1,132 @@
+; --- go_fly ----------------------------------------------------
+; @done
+; Player fly state (Jackrabbit weapon): drift under thrust while
+; consuming ammo, colliding with solid tiles (is_solid).
+; In: ix = player
 go_fly:
 	ld iy, (ACTIVE_SLOT)
-	ld a, (iy+$01)
+	ld a, (iy+SLOT.WEAPON)
 
 	cp $05 
-	jr nz, LB8E7_4
+	jr nz, .idle
 
-	inc (ix+$11)
-	ld a, (ix+$11)
+	inc (ix+ALIEN.param1)
+	ld a, (ix+ALIEN.param1)
 
 	cp $05
-	jr nz, LB8E7_1
+	jr nz, .rise
 
-	ld (ix+$11), $00
+	ld (ix+ALIEN.param1), $00
 	ld c, $01
-	ld a, (LA194)
+	ld a, (SPRITESET)
 
 	cp $02
-	jr nz, LB8E7_0
+	jr nz, .use_ammo
 
 	ld c, $15
-LB8E7_0:
+.use_ammo:
 	ld a, c
 
-	call LB210
+	call consume_ammo
 
-LB8E7_1:
+.rise:
 	ld a, (KEY_FIRE_CURRENT)
 	bit 3, a
-	jr z, LB8E7_2
+	jr z, .settle
 
-	ld hl, (LB3E8)
+	ld hl, (PLAYER_CELL_PTR)
 
-	call LB993
-	call c, LBA93
+	call is_solid
+	call c, apply_hazard_damage
 
-	jr c, LB8E7_5
+	jr c, .move_x
 
 	inc l
 
-	call LB993
-	call c, LBA93
+	call is_solid
+	call c, apply_hazard_damage
 
-	jr c, LB8E7_5
+	jr c, .move_x
 
-	ld a, (ix+$04)
+	ld a, (ix+ALIEN.y)
 
 	cp $05
-	jr c, LB8E7_5
+	jr c, .move_x
 
 	sub $04
-	ld (ix+$04), a
-	jr LB8E7_5
+	ld (ix+ALIEN.y), a
+	jr .move_x
 
-LB8E7_2:
+.settle:
 	ld c, $02
 	bit 2, a
-	jr z, LB8E7_3
+	jr z, .ground
 
 	ld c, $04
-LB8E7_3:
-	call LB706
+.ground:
+	call check_ground
 
 	and a
-	jr nz, LB8E7_4
+	jr nz, .idle
 
-	ld a, (ix+$04)
+	ld a, (ix+ALIEN.y)
 	add a, c
-	ld (ix+$04), a
-	jr LB8E7_5
+	ld (ix+ALIEN.y), a
+	jr .move_x
 
-LB8E7_4:
-	ld (ix+$00), $01
+.idle:
+	ld (ix+ALIEN.state), $01
 	ret
 
-LB8E7_5:
-	bit 7, (ix+$13)
-	jr nz, LB8E7_6
+.move_x:
+	bit 7, (ix+ALIEN.draw_x)
+	jr nz, .check_right
 
-	ld hl, (LB3E6)
+	ld hl, (PLAYER_CELL_LEAD)
 	ld de, $0020
 
-	call LB993
+	call is_solid
 	ret c
 
 	add hl, de
 
-	call LB993
+	call is_solid
 	ret c
 
 	add hl, de
 
-	call LB993
+	call is_solid
 	ret c
 
 	add hl, de
 
-	call LB993
+	call is_solid
 	ret c
 
-LB8E7_6:
+.check_right:
 	ld a, (PLAYER_X_COORD)
 
 	cp $3B
-	jr nc, LB8E7_7
+	jr nc, .walk
 
-	bit 7, (ix+$12)
+	bit 7, (ix+ALIEN.param2)
 	jp nz, go_left_room
 
-LB8E7_7:
+.walk:
 	cp $B6
-	jr c, LB8E7_8
+	jr c, .land
 
-	bit 7, (ix+$12)
+	bit 7, (ix+ALIEN.param2)
 	jp z, go_right_room
 
-LB8E7_8:
-	add a, (ix+$12)
+.land:
+	add a, (ix+ALIEN.param2)
 	ld (PLAYER_X_COORD), a
 
 	ret
 
 
-LB993:
+is_solid:
 	push de
 	ld d, $EF
 	ld e, (hl)
