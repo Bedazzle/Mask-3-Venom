@@ -1,0 +1,11 @@
+;CONTROL_KEYS:
+KEY_FIRE:
+	DB $40
+KEY_UP:
+	DB "A"
+KEY_DOWN:
+	DB "B"
+KEY_LEFT:
+	DB "D"
+KEY_RIGHT:
+	DB "C"

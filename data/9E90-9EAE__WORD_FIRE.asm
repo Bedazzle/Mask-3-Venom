@@ -1,0 +1,22 @@
+; --- WORD_FIRE..WORD_PRESS: redefine-keys menu key-name strings (ABYTEC) + MENU_ATTR_SEQ colour cycle
+WORD_FIRE:
+	ABYTEC 0 "FIRE"
+
+WORD_UP:
+	ABYTEC 0 "UP  "
+
+WORD_DOWN:
+	ABYTEC 0 "DOWN"
+
+WORD_LEFT:
+	ABYTEC 0 "LEFT"
+
+WORD_RIGHT:
+	ABYTEC 0 "RIGHT"
+
+WORD_PRESS:
+	ABYTEC 0 "Press"
+
+
+MENU_ATTR_SEQ:
+	DB $47,$46,$07,$06,$FF

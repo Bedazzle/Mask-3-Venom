@@ -1,8 +1,7 @@
 ; --- draw_multi_logo -------------------------------------------
 ; @done
 ; Draw the multicolour 'Venom Strikes Back' title logo.
-draw_multi_logo:	; draw multicolor flag ???
-					; ? Venom logo 10x7 cells
+draw_multi_logo:	; Venom logo = 10x7 cells; opens with a short settle delay
 	ld bc, $021F
 
 loop_draw_pause:

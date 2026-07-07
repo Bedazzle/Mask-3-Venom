@@ -1225,7 +1225,7 @@ SPRITE_DF80:
 
 
 
-; current room spriteset ??? 800 = 256 x 8 = 2048 bytes
+; SPRITE_E000: the current room's spritesheet - 256 cells x 8 bytes = $800 (swapped in by swap_spritesheet)
 
 SPRITE_E000:
 	DB	0	; ░░░░░░░░	$E000	57344	$00
